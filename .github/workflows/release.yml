@@ -1,0 +1,98 @@
+name: Release x-ui
+
+on:
+  push:
+    tags:
+      - '*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Cache Xray binaries
+        id: cache-xray
+        uses: actions/cache@v4
+        with:
+          path: |
+            build/amd64/bin
+            build/arm64/bin
+          key: xray-v25.3.6
+
+      - name: Download Xray binaries
+        if: steps.cache-xray.outputs.cache-hit != 'true'
+        run: |
+          XRAY_VERSION="v25.3.6"
+          
+          # Download amd64
+          mkdir -p build/amd64/bin
+          wget -q "https://github.com/XTLS/Xray-core/releases/download/${XRAY_VERSION}/Xray-linux-64.zip" -O /tmp/xray-amd64.zip
+          unzip -o /tmp/xray-amd64.zip xray -d build/amd64/bin/
+          mv build/amd64/bin/xray build/amd64/bin/xray-linux-amd64
+          
+          # Download arm64
+          mkdir -p build/arm64/bin
+          wget -q "https://github.com/XTLS/Xray-core/releases/download/${XRAY_VERSION}/Xray-linux-arm64-v8a.zip" -O /tmp/xray-arm64.zip
+          unzip -o /tmp/xray-arm64.zip xray -d build/arm64/bin/
+          mv build/arm64/bin/xray build/arm64/bin/xray-linux-arm64
+
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: ~/go/pkg/mod
+          key: go-mod-${{ hashFiles('go.sum') }}
+          restore-keys: go-mod-
+
+      - name: Build for amd64
+        env:
+          GOOS: linux
+          GOARCH: amd64
+          CGO_ENABLED: 0
+        run: |
+          go build -o build/amd64/x-ui main.go
+
+      - name: Build for arm64
+        env:
+          GOOS: linux
+          GOARCH: arm64
+          CGO_ENABLED: 0
+        run: |
+          go build -o build/arm64/x-ui main.go
+
+      - name: Package releases
+        run: |
+          # Package amd64
+          mkdir -p release/amd64/x-ui
+          cp build/amd64/x-ui release/amd64/x-ui/
+          cp -r build/amd64/bin release/amd64/x-ui/
+          cp x-ui.service release/amd64/x-ui/
+          cp x-ui.sh release/amd64/x-ui/
+          cd release/amd64 && tar -czvf ../../x-ui-linux-amd64.tar.gz x-ui && cd ../..
+          
+          # Package arm64
+          mkdir -p release/arm64/x-ui
+          cp build/arm64/x-ui release/arm64/x-ui/
+          cp -r build/arm64/bin release/arm64/x-ui/
+          cp x-ui.service release/arm64/x-ui/
+          cp x-ui.sh release/arm64/x-ui/
+          cd release/arm64 && tar -czvf ../../x-ui-linux-arm64.tar.gz x-ui && cd ../..
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            x-ui-linux-amd64.tar.gz
+            x-ui-linux-arm64.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

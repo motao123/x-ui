@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+{{template "head" .}}
+<style>
+    @media (min-width: 769px) {
+        .ant-layout-content {
+            margin: 24px 16px;
+        }
+    }
+
+    .ant-col-sm-24 {
+        margin-top: 10px;
+    }
+
+    .stat-card .ant-card-body {
+        padding: 16px 20px;
+    }
+    .stat-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .stat-label {
+        font-size: 13px;
+        color: rgba(0,0,0,0.45);
+    }
+    .stat-value {
+        font-size: 16px;
+        font-weight: 500;
+        color: rgba(0,0,0,0.85);
+    }
+    .stat-up {
+        color: #52c41a;
+    }
+    .stat-down {
+        color: #1890ff;
+    }
+    .xray-status-bar {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+</style>
+<body>
+<a-layout id="app" v-cloak>
+    {{ template "commonSider" . }}
+    <a-layout id="content-layout">
+        <a-layout-content>
+            <a-spin :spinning="spinning" :delay="200" :tip="loadingTip"/>
+            <transition name="list" appear>
+                <a-row>
+                    <a-col :span="24">
+                        <a-card>
+                        <a-row>
+                            <a-col :sm="24" :md="12">
+                                <a-row>
+                                    <a-col :span="12" style="text-align: center">
+                                        <a-progress type="dashboard" status="normal"
+                                                    :stroke-color="status.cpu.color"
+                                                    :percent="status.cpu.percent"></a-progress>
+                                        <div>CPU: [[ status.cpu.percent.toFixed(1) ]]%</div>
+                                    </a-col>
+                                    <a-col :span="12" style="text-align: center">
+                                        <a-progress type="dashboard" status="normal"
+                                                    :stroke-color="status.mem.color"
+                                                    :percent="status.mem.percent"></a-progress>
+                                        <div>
+                                            内存: [[ sizeFormat(status.mem.current) ]] / [[ sizeFormat(status.mem.total) ]]
+                                        </div>
+                                    </a-col>
+                                </a-row>
+                            </a-col>
+                            <a-col :sm="24" :md="12">
+                                <a-row>
+                                    <a-col :span="12" style="text-align: center">
+                                        <a-progress type="dashboard" status="normal"
+                                                    :stroke-color="status.swap.color"
+                                                    :percent="status.swap.percent"></a-progress>
+                                        <div>
+                                            Swap: [[ sizeFormat(status.swap.current) ]] / [[ sizeFormat(status.swap.total) ]]
+                                        </div>
+                                    </a-col>
+                                    <a-col :span="12" style="text-align: center">
+                                        <a-progress type="dashboard" status="normal"
+                                                    :stroke-color="status.disk.color"
+                                                    :percent="status.disk.percent"></a-progress>
+                                        <div>
+                                            硬盘: [[ sizeFormat(status.disk.current) ]] / [[ sizeFormat(status.disk.total) ]]
+                                        </div>
+                                    </a-col>
+                                </a-row>
+                            </a-col>
+                        </a-row>
+                    </a-card>
+                </a-col>
+                </a-row>
+            </transition>
+            <transition name="list" appear>
+                <a-row :gutter="[10, 10]" class="stat-row-grid">
+                    <a-col :sm="24" :md="12">
+                        <a-card class="stat-card">
+                            <div class="xray-status-bar">
+                                <span>xray 状态:</span>
+                                <a-tag :color="status.xray.color">[[ status.xray.state ]]</a-tag>
+                                <a-tooltip v-if="status.xray.state === State.Error">
+                                    <template slot="title">
+                                        <p v-for="line in status.xray.errorMsg.split('\n')">[[ line ]]</p>
+                                    </template>
+                                    <a-icon type="question-circle" theme="filled" style="color: #ff4d4f; cursor: pointer;"></a-icon>
+                                </a-tooltip>
+                                <a-tag color="green">[[ status.xray.version ]]</a-tag>
+                                <a-button size="small" type="link" @click="openSelectV2rayVersion">切换版本</a-button>
+                            </div>
+                        </a-card>
+                    </a-col>
+                    <a-col :sm="24" :md="12">
+                        <a-card class="stat-card">
+                            <div class="xray-status-bar">
+                                <span>运行时间:</span>
+                                <a-tag color="#87d068">[[ formatSecond(status.uptime) ]]</a-tag>
+                                <a-tooltip>
+                                    <template slot="title">系统自启动以来的运行时间</template>
+                                    <a-icon type="question-circle" theme="filled"></a-icon>
+                                </a-tooltip>
+                            </div>
+                        </a-card>
+                    </a-col>
+                    <a-col :sm="24" :md="12">
+                        <a-card class="stat-card">
+                            系统负载: [[ status.loads[0] ]] | [[ status.loads[1] ]] | [[ status.loads[2] ]]
+                        </a-card>
+                    </a-col>
+                    <a-col :sm="24" :md="12">
+                        <a-card class="stat-card">
+                            tcp / udp 连接数: [[ status.tcpCount ]] / [[ status.udpCount ]]
+                            <a-tooltip>
+                                <template slot="title">所有网卡的总连接数</template>
+                                <a-icon type="question-circle" theme="filled"></a-icon>
+                            </a-tooltip>
+                        </a-card>
+                    </a-col>
+                    <a-col :sm="24" :md="12">
+                        <a-card class="stat-card">
+                            <a-row :gutter="16">
+                                <a-col :span="12">
+                                    <div class="stat-row">
+                                        <span class="stat-label"><a-icon type="arrow-up" class="stat-up" /> 上传</span>
+                                        <span class="stat-value stat-up">[[ sizeFormat(status.netIO.up) ]]/s</span>
+                                    </div>
+                                </a-col>
+                                <a-col :span="12">
+                                    <div class="stat-row">
+                                        <span class="stat-label"><a-icon type="arrow-down" class="stat-down" /> 下载</span>
+                                        <span class="stat-value stat-down">[[ sizeFormat(status.netIO.down) ]]/s</span>
+                                    </div>
+                                </a-col>
+                            </a-row>
+                            <div style="font-size: 12px; color: rgba(0,0,0,0.35); margin-top: 4px;">网络速度</div>
+                        </a-card>
+                    </a-col>
+                    <a-col :sm="24" :md="12">
+                        <a-card class="stat-card">
+                            <a-row :gutter="16">
+                                <a-col :span="12">
+                                    <div class="stat-row">
+                                        <span class="stat-label"><a-icon type="cloud-upload" class="stat-up" /> 上传</span>
+                                        <span class="stat-value stat-up">[[ sizeFormat(status.netTraffic.sent) ]]</span>
+                                    </div>
+                                </a-col>
+                                <a-col :span="12">
+                                    <div class="stat-row">
+                                        <span class="stat-label"><a-icon type="cloud-download" class="stat-down" /> 下载</span>
+                                        <span class="stat-value stat-down">[[ sizeFormat(status.netTraffic.recv) ]]</span>
+                                    </div>
+                                </a-col>
+                            </a-row>
+                            <div style="font-size: 12px; color: rgba(0,0,0,0.35); margin-top: 4px;">网络流量</div>
+                        </a-card>
+                    </a-col>
+                </a-row>
+            </transition>
+        </a-layout-content>
+    </a-layout>
+    <a-modal id="version-modal" v-model="versionModal.visible" title="切换 Xray 版本"
+             :closable="true" @ok="() => versionModal.visible = false"
+             ok-text="确定" cancel-text="取消">
+        <a-alert message="请谨慎选择，旧版本可能配置不兼容" type="warning" show-icon style="margin-bottom: 16px;" />
+        <template v-for="version, index in versionModal.versions">
+            <a-tag :color="version === status.xray.version ? '#1890ff' : (index % 2 == 0 ? 'blue' : 'green')"
+                   style="margin: 5px; cursor: pointer;" @click="switchV2rayVersion(version)">
+                [[ version ]]
+                <a-icon v-if="version === status.xray.version" type="check-circle" />
+            </a-tag>
+        </template>
+    </a-modal>
+</a-layout>
+{{template "js" .}}
+<script>
+
+    const State = {
+        Running: "running",
+        Stop: "stop",
+        Error: "error",
+    }
+    Object.freeze(State);
+
+    class CurTotal {
+
+        constructor(current, total) {
+            this.current = current;
+            this.total = total;
+        }
+
+        get percent() {
+            if (this.total === 0) {
+                return 0;
+            }
+            return toFixed(this.current / this.total * 100, 2);
+        }
+
+        get color() {
+            const percent = this.percent;
+            if (percent < 80) {
+                return '#67C23A';
+            } else if (percent < 90) {
+                return '#E6A23C';
+            } else {
+                return '#F56C6C';
+            }
+        }
+    }
+
+    class Status {
+        constructor(data) {
+            this.cpu = new CurTotal(0, 0);
+            this.disk = new CurTotal(0, 0);
+            this.loads = [0, 0, 0];
+            this.mem = new CurTotal(0, 0);
+            this.netIO = {up: 0, down: 0};
+            this.netTraffic = {sent: 0, recv: 0};
+            this.swap = new CurTotal(0, 0);
+            this.tcpCount = 0;
+            this.udpCount = 0;
+            this.uptime = 0;
+            this.xray = {state: State.Stop, errorMsg: "", version: "", color: ""};
+
+            if (data == null) {
+                return;
+            }
+            this.cpu = new CurTotal(data.cpu, 100);
+            this.disk = new CurTotal(data.disk.current, data.disk.total);
+            this.loads = data.loads.map(load => toFixed(load, 2));
+            this.mem = new CurTotal(data.mem.current, data.mem.total);
+            this.netIO = data.netIO;
+            this.netTraffic = data.netTraffic;
+            this.swap = new CurTotal(data.swap.current, data.swap.total);
+            this.tcpCount = data.tcpCount;
+            this.udpCount = data.udpCount;
+            this.uptime = data.uptime;
+            this.xray = data.xray;
+            switch (this.xray.state) {
+                case State.Running:
+                    this.xray.color = "green";
+                    break;
+                case State.Stop:
+                    this.xray.color = "orange";
+                    break;
+                case State.Error:
+                    this.xray.color = "red";
+                    break;
+                default:
+                    this.xray.color = "gray";
+            }
+        }
+    }
+
+    const versionModal = {
+        visible: false,
+        versions: [],
+        show(versions) {
+            this.visible = true;
+            this.versions = versions;
+        },
+        hide() {
+            this.visible = false;
+        },
+    };
+
+    const app = new Vue({
+        delimiters: ['[[', ']]'],
+        el: '#app',
+        data: {
+            siderDrawer,
+            status: new Status(),
+            versionModal,
+            spinning: false,
+            loadingTip: '加载中',
+        },
+        methods: {
+            loading(spinning, tip = '加载中') {
+                this.spinning = spinning;
+                this.loadingTip = tip;
+            },
+            async getStatus() {
+                const msg = await HttpUtil.post('/server/status');
+                if (msg.success) {
+                    this.setStatus(msg.obj);
+                }
+            },
+            setStatus(data) {
+                this.status = new Status(data);
+            },
+            async openSelectV2rayVersion() {
+                this.loading(true);
+                const msg = await HttpUtil.post('server/getXrayVersion');
+                this.loading(false);
+                if (!msg.success) {
+                    return;
+                }
+                versionModal.show(msg.obj);
+            },
+            switchV2rayVersion(version) {
+                this.$confirm({
+                    title: '切换 xray 版本',
+                    content: '是否切换 xray 版本至' + ` ${version}?`,
+                    okText: '确定',
+                    cancelText: '取消',
+                    onOk: async () => {
+                        versionModal.hide();
+                        this.loading(true, '安装中，请不要刷新此页面');
+                        await HttpUtil.post(`/server/installXray/${version}`);
+                        this.loading(false);
+                    },
+                });
+            },
+        },
+        async mounted() {
+            while (true) {
+                try {
+                    // 页面不可见时降低轮询频率
+                    if (document.hidden) {
+                        await PromiseUtil.sleep(5000);
+                        continue;
+                    }
+                    await this.getStatus();
+                } catch (e) {
+                    console.error(e);
+                }
+                await PromiseUtil.sleep(2000);
+            }
+        },
+    });
+
+</script>
+</body>
+</html>

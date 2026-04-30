@@ -1,0 +1,161 @@
+{{define "inboundModal"}}
+<a-modal id="inbound-modal" v-model="inModal.visible" :title="inModal.title" @ok="inModal.ok"
+         :confirm-loading="inModal.confirmLoading" :closable="true" :mask-closable="false"
+         :ok-text="inModal.okText" cancel-text='{{ i18n "close" }}'
+         width="700px" :body-style="{ maxHeight: '75vh', overflowY: 'auto' }">
+    {{template "form/inbound"}}
+</a-modal>
+<script>
+
+    const inModal = {
+        title: '',
+        visible: false,
+        confirmLoading: false,
+        okText: '确定',
+        confirm: null,
+        inbound: new Inbound(),
+        dbInbound: new DBInbound(),
+        ok() {
+            ObjectUtil.execute(inModal.confirm, inModal.inbound, inModal.dbInbound);
+        },
+        show({ title='', okText='确定', inbound=null, dbInbound=null, confirm=(inbound, dbInbound)=>{} }) {
+            this.title = title;
+            this.okText = okText;
+            if (inbound) {
+                this.inbound = Inbound.fromJson(inbound.toJson());
+            } else {
+                this.inbound = new Inbound();
+            }
+            if (dbInbound) {
+                this.dbInbound = new DBInbound(dbInbound);
+            } else {
+                this.dbInbound = new DBInbound();
+            }
+            this.confirm = confirm;
+            this.visible = true;
+        },
+        close() {
+            inModal.visible = false;
+            inModal.loading(false);
+        },
+        loading(loading) {
+            inModal.confirmLoading = loading;
+        },
+    };
+
+    const protocols = {
+        VMESS: Protocols.VMESS,
+        VLESS: Protocols.VLESS,
+        TROJAN: Protocols.TROJAN,
+        SHADOWSOCKS: Protocols.SHADOWSOCKS,
+        DOKODEMO: Protocols.DOKODEMO,
+        SOCKS: Protocols.SOCKS,
+        HTTP: Protocols.HTTP,
+    };
+
+    new Vue({
+        delimiters: ['[[', ']]'],
+        el: '#inbound-modal',
+        data: {
+            inModal: inModal,
+            Protocols: protocols,
+            SSMethods: SSMethods,
+            acmeEmail: '',
+            acmeLoading: false,
+            get inbound() {
+                return inModal.inbound;
+            },
+            get dbInbound() {
+                return inModal.dbInbound;
+            }
+        },
+        methods: {
+            protocolName(p) { return ProtocolNames[p] || p; },
+            filterProtocol(input, option) {
+                const p = option.key;
+                const name = ProtocolNames[p] || p;
+                return name.toLowerCase().indexOf(input.toLowerCase()) >= 0 || p.toLowerCase().indexOf(input.toLowerCase()) >= 0;
+            },
+            protocolChange() {
+                if (!inModal.inbound.canEnableReality()) {
+                    inModal.inbound.reality = false;
+                }
+                if (!inModal.inbound.canEnableTls()) {
+                    inModal.inbound.tls = false;
+                    inModal.inbound.xtls = false;
+                }
+                // 强制 TLS 协议确保 TLS 开启
+                if (inModal.inbound.isTlsRequired()) {
+                    inModal.inbound.tls = true;
+                }
+            },
+            streamNetworkChange(oldValue) {
+                if (oldValue === 'kcp') {
+                    inModal.inbound.tls = false;
+                    inModal.inbound.reality = false;
+                }
+                if (!inModal.inbound.canEnableReality()) {
+                    inModal.inbound.reality = false;
+                }
+                if (!inModal.inbound.canEnableTls()) {
+                    inModal.inbound.tls = false;
+                    inModal.inbound.xtls = false;
+                }
+            },
+            isFixedNetworkProtocol(inbound) {
+                if (!inbound) return false;
+                if (typeof inbound.isFixedNetworkProtocol === 'function') {
+                    return inbound.isFixedNetworkProtocol();
+                }
+                switch (inbound.protocol) {
+                    default:
+                        return false;
+                }
+            },
+            canUseNetwork(inbound, network) {
+                if (!inbound) return false;
+                if (typeof inbound.canUseNetwork === 'function') {
+                    return inbound.canUseNetwork(network);
+                }
+                return network !== 'udp' && network !== 'quic';
+            },
+            ssMethodChange(inbound) {
+                if (inbound.settings.isSS2022()) {
+                    inbound.settings.password = RandomUtil.randomBase64(32);
+                } else {
+                    inbound.settings.password = RandomUtil.randomSeq(10);
+                }
+            },
+            async genX25519() {
+                const msg = await HttpUtil.post('/server/genX25519');
+                if (msg.success) {
+                    inModal.inbound.stream.reality.privateKey = msg.obj['Private key'] || '';
+                    inModal.inbound.stream.reality.publicKey = msg.obj['Public key'] || '';
+                    this.$message.success('密钥对已生成');
+                }
+            },
+            async applyAcmeCert() {
+                const domain = this.inbound.stream.tls.server;
+                if (ObjectUtil.isEmpty(domain)) {
+                    this.$message.error('请先填写域名');
+                    return;
+                }
+                this.acmeLoading = true;
+                const msg = await HttpUtil.post('/server/acme/apply', {
+                    domain: domain,
+                    email: this.acmeEmail,
+                });
+                this.acmeLoading = false;
+                if (!msg.success) {
+                    return;
+                }
+                this.inbound.tls = true;
+                this.inbound.stream.tls.certs[0].useFile = true;
+                this.inbound.stream.tls.certs[0].certFile = msg.obj.certFile;
+                this.inbound.stream.tls.certs[0].keyFile = msg.obj.keyFile;
+            }
+        }
+    });
+
+</script>
+{{end}}

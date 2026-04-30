@@ -1,0 +1,51 @@
+{{define "form/streamSettings"}}
+<!-- select stream network -->
+<a-form layout="inline">
+    <a-form-item label="传输">
+        <a-select v-model="inbound.stream.network" @change="streamNetworkChange" style="width: 160px;" :dropdown-match-select-width="false" :disabled="isFixedNetworkProtocol(inbound)">
+            <a-select-option v-if="canUseNetwork(inbound, 'tcp')" value="tcp">TCP</a-select-option>
+            <a-select-option v-if="canUseNetwork(inbound, 'kcp')" value="kcp">mKCP</a-select-option>
+            <a-select-option v-if="canUseNetwork(inbound, 'ws')" value="ws">WebSocket</a-select-option>
+            <a-select-option v-if="canUseNetwork(inbound, 'http')" value="http">HTTP/2</a-select-option>
+            <a-select-option v-if="canUseNetwork(inbound, 'grpc')" value="grpc">gRPC</a-select-option>
+            <a-select-option v-if="canUseNetwork(inbound, 'httpupgrade')" value="httpupgrade">HTTPUpgrade</a-select-option>
+            <a-select-option v-if="canUseNetwork(inbound, 'splithttp')" value="splithttp">SplitHTTP</a-select-option>
+        </a-select>
+    </a-form-item>
+</a-form>
+
+<!-- tcp -->
+<template v-if="inbound.stream.network === 'tcp'">
+    {{template "form/streamTCP"}}
+</template>
+
+<!-- kcp -->
+<template v-if="inbound.stream.network === 'kcp'">
+    {{template "form/streamKCP"}}
+</template>
+
+<!-- ws -->
+<template v-if="inbound.stream.network === 'ws'">
+    {{template "form/streamWS"}}
+</template>
+
+<!-- http -->
+<template v-if="inbound.stream.network === 'http'">
+    {{template "form/streamHTTP"}}
+</template>
+
+<!-- grpc -->
+<template v-if="inbound.stream.network === 'grpc'">
+    {{template "form/streamGRPC"}}
+</template>
+
+<!-- httpupgrade -->
+<template v-if="inbound.stream.network === 'httpupgrade'">
+    {{template "form/streamHTTPUpgrade"}}
+</template>
+
+<!-- splithttp -->
+<template v-if="inbound.stream.network === 'splithttp'">
+    {{template "form/streamSplitHTTP"}}
+</template>
+{{end}}

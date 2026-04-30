@@ -1,0 +1,116 @@
+#app {
+    height: 100%;
+}
+
+.ant-space {
+    width: 100%;
+}
+
+.ant-layout-sider-zero-width-trigger {
+    display: none;
+}
+
+.ant-card {
+    border-radius: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    transition: box-shadow 0.3s;
+}
+
+.ant-card:hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+}
+
+.ant-card+.ant-card {
+    margin-top: 20px;
+}
+
+.drawer-handle {
+    position: absolute;
+    top: 72px;
+    width: 41px;
+    height: 40px;
+    cursor: pointer;
+    z-index: 0;
+    text-align: center;
+    line-height: 40px;
+    font-size: 16px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #fff;
+    right: -40px;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
+    border-radius: 0 4px 4px 0;
+}
+
+@media (min-width: 769px) {
+    .drawer-handle {
+        display: none;
+    }
+}
+
+/* Transition animations */
+.list-enter-active, .list-leave-active {
+    -webkit-transition: all .3s;
+    transition: all .3s
+}
+
+.list-enter, .list-leave-active {
+    opacity: 0;
+    -webkit-transform: translateY(-30px);
+    transform: translateY(-30px)
+}
+
+/* Progress bar background */
+.ant-progress-inner {
+    background-color: #f0f0f0;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+    .ant-card {
+        border-radius: 8px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    }
+
+    .ant-card:hover {
+        box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    }
+
+    .ant-table {
+        font-size: 12px;
+    }
+
+    .ant-modal {
+        max-width: calc(100vw - 16px);
+        margin: 8px auto;
+    }
+
+    .ant-statistic-title {
+        font-size: 12px;
+    }
+
+    .ant-statistic-content {
+        font-size: 14px !important;
+    }
+}
+
+/* Statistic card styling */
+.ant-statistic {
+    padding: 4px 0;
+}
+
+/* System status grid: equal-height cards inside each row */
+.stat-row-grid {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+}
+
+.stat-row-grid > .ant-col {
+    display: flex;
+}
+
+.stat-row-grid .stat-card {
+    width: 100%;
+}

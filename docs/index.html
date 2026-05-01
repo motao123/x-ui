@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>x-ui - Xray Web Management Panel</title>
-<meta name="description" content="Lightweight web panel for Xray-core. Go + Gin backend, manage inbound configs, users, traffic stats via browser.">
+<title>x-ui - Xray Web 管理面板</title>
+<meta name="description" content="基于 Go + Gin 的轻量级 Xray Web 管理面板，支持入站配置、用户管理、流量统计。">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
@@ -150,10 +150,10 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--accent2)}
   <div class="container">
     <a href="#" class="logo">x-<em>ui</em></a>
     <div class="nav-links">
-      <a href="#features">Features</a>
-      <a href="#protocols">Protocols</a>
-      <a href="#install">Install</a>
-      <a href="#screenshots">Screenshots</a>
+      <a href="#features">特性</a>
+      <a href="#protocols">协议</a>
+      <a href="#install">安装</a>
+      <a href="#screenshots">截图</a>
       <a href="https://github.com/motao123/x-ui" class="gh-btn" target="_blank">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
         GitHub
@@ -165,17 +165,17 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--accent2)}
 <main>
   <section class="hero">
     <div class="container">
-      <div class="hero-tag">Xray Web Panel</div>
+      <div class="hero-tag">Xray Web 管理面板</div>
       <h1>x-<em>ui</em></h1>
-      <p class="sub">Lightweight Xray management panel built with Go. Configure inbound proxies, manage users, monitor traffic — all from your browser.</p>
+      <p class="sub">基于 Go 构建的轻量级 Xray 管理面板，浏览器管理入站代理、用户配置、流量统计，一站式搞定。</p>
       <div class="hero-badges">
         <span class="badge"><span class="dot" style="background:var(--accent)"></span>Go + Gin</span>
         <span class="badge"><span class="dot" style="background:var(--green)"></span>Xray-core</span>
-        <span class="badge"><span class="dot" style="background:var(--purple)"></span>MIT License</span>
+        <span class="badge"><span class="dot" style="background:var(--purple)"></span>MIT 开源</span>
       </div>
       <div class="hero-btns">
-        <a href="#install" class="btn btn-primary">Get Started</a>
-        <a href="https://github.com/motao123/x-ui" class="btn btn-outline" target="_blank">View on GitHub</a>
+        <a href="#install" class="btn btn-primary">立即安装</a>
+        <a href="https://github.com/motao123/x-ui" class="btn btn-outline" target="_blank">查看 GitHub</a>
       </div>
     </div>
   </section>
@@ -186,51 +186,51 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--accent2)}
     <div class="container">
       <div class="section-header">
         <div class="section-tag">Features</div>
-        <h2>Why x-ui?</h2>
-        <p class="desc">Everything you need to manage Xray proxies on a Linux server</p>
+        <h2>为什么选择 x-ui？</h2>
+        <p class="desc">Linux 服务器上管理 Xray 代理所需的一切</p>
       </div>
       <div class="fg">
         <div class="fc">
           <div class="icon blue">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
           </div>
-          <h3>Web Management</h3>
-          <p>Configure Xray inbounds, users, and protocols through an intuitive browser-based UI.</p>
+          <h3>Web 可视化管理</h3>
+          <p>浏览器直接管理 Xray 入站配置，支持多用户、多协议、多传输方式。</p>
         </div>
         <div class="fc">
           <div class="icon green">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
           </div>
-          <h3>System Monitoring</h3>
-          <p>Real-time CPU, memory, disk, network usage with TCP/UDP connection tracking.</p>
+          <h3>系统状态监控</h3>
+          <p>实时查看 CPU、内存、磁盘、网络流量、TCP/UDP 连接数等运行状态。</p>
         </div>
         <div class="fc">
           <div class="icon purple">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
           </div>
-          <h3>Security Hardening</h3>
-          <p>Dual-layer CSRF protection, login rate limiting, user isolation, encrypted TG tokens.</p>
+          <h3>安全加固</h3>
+          <p>CSRF 双层防护、登录限速、用户隔离、TG Token 加密存储。</p>
         </div>
         <div class="fc">
           <div class="icon orange">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
           </div>
-          <h3>Telegram Alerts</h3>
-          <p>Traffic stats, login alerts, expiry reminders, and usage warnings via Telegram Bot.</p>
+          <h3>Telegram 通知</h3>
+          <p>流量统计、登录提醒、到期提醒、流量预警，通过 Telegram Bot 实时推送。</p>
         </div>
         <div class="fc">
           <div class="icon cyan">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 002 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0022 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/></svg>
           </div>
-          <h3>CGO-Free Build</h3>
-          <p>Pure Go SQLite driver, no CGO required. Cross-compile for any platform easily.</p>
+          <h3>CGO-Free 构建</h3>
+          <p>纯 Go SQLite 驱动，无需 CGO，跨平台编译更简单。</p>
         </div>
         <div class="fc">
           <div class="icon pink">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
           </div>
-          <h3>v2-ui Migration</h3>
-          <p>One-click migration from v2-ui. Import existing inbound configs and user data.</p>
+          <h3>v2-ui 迁移</h3>
+          <p>一键迁移 v2-ui 的入站配置和用户数据，平滑升级。</p>
         </div>
       </div>
     </div>
@@ -242,44 +242,44 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--accent2)}
     <div class="container">
       <div class="section-header">
         <div class="section-tag">Protocols</div>
-        <h2>Supported Protocols</h2>
-        <p class="desc">Cover all mainstream proxy protocols for every scenario</p>
+        <h2>支持协议</h2>
+        <p class="desc">覆盖主流代理协议，满足不同场景需求</p>
       </div>
       <div class="pg">
         <div class="pc">
           <span class="tag" style="background:var(--accent-bg);color:var(--accent)">VLESS</span>
           <h3>VLESS + Reality</h3>
-          <p>No domain needed, strongest anti-detection</p>
+          <p>无需域名和证书，抗检测能力最强</p>
         </div>
         <div class="pc">
           <span class="tag" style="background:var(--purple-bg);color:var(--purple)">VMess</span>
           <h3>VMess + WS + TLS</h3>
-          <p>Best compatibility, CDN-friendly</p>
+          <p>客户端兼容性最好，CDN 中转友好</p>
         </div>
         <div class="pc">
           <span class="tag" style="background:var(--pink-bg);color:var(--pink)">Trojan</span>
           <h3>Trojan + TLS</h3>
-          <p>Simple config, TLS-native disguise</p>
+          <p>配置简单，基于 TLS 伪装性好</p>
         </div>
         <div class="pc">
           <span class="tag" style="background:var(--orange-bg);color:var(--orange)">SS</span>
           <h3>Shadowsocks</h3>
-          <p>Classic lightweight proxy, AEAD encryption</p>
+          <p>经典轻量代理，支持 AEAD 加密</p>
         </div>
         <div class="pc">
           <span class="tag" style="background:var(--cyan-bg);color:var(--cyan)">SOCKS</span>
           <h3>SOCKS5</h3>
-          <p>Standard proxy, UDP relay support</p>
+          <p>标准代理协议，支持 UDP 转发</p>
         </div>
         <div class="pc">
           <span class="tag" style="background:#ede9fe;color:#6d28d9">HTTP</span>
-          <h3>HTTP Proxy</h3>
-          <p>Standard HTTP proxy with auth</p>
+          <h3>HTTP 代理</h3>
+          <p>标准 HTTP 代理，支持用户认证</p>
         </div>
         <div class="pc">
           <span class="tag" style="background:#f1f5f9;color:#64748b">Door</span>
           <h3>Dokodemo-door</h3>
-          <p>Transparent proxy & port forwarding</p>
+          <p>透明代理和端口转发</p>
         </div>
       </div>
     </div>
@@ -291,8 +291,8 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--accent2)}
     <div class="container">
       <div class="section-header">
         <div class="section-tag">Install</div>
-        <h2>Quick Start</h2>
-        <p class="desc">Deploy on Debian, Ubuntu, or CentOS with a single command</p>
+        <h2>一键安装</h2>
+        <p class="desc">在 Debian / Ubuntu / CentOS 服务器上快速部署</p>
       </div>
       <div class="install-box">
         <div class="term-bar">
@@ -305,19 +305,19 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--accent2)}
           <div class="copy-row">
             <span class="prompt">$</span>
             <code>bash &lt;(curl -Ls https://raw.githubusercontent.com/motao123/x-ui/main/install.sh)</code>
-            <button class="cp" onclick="cpy(this)">Copy</button>
+            <button class="cp" onclick="cpy(this)">复制</button>
           </div>
         </div>
       </div>
       <div class="cg">
-        <div class="ci"><code>x-ui</code><span>Management menu</span></div>
-        <div class="ci"><code>x-ui status</code><span>Check status</span></div>
-        <div class="ci"><code>x-ui start</code><span>Start panel</span></div>
-        <div class="ci"><code>x-ui stop</code><span>Stop panel</span></div>
-        <div class="ci"><code>x-ui restart</code><span>Restart panel</span></div>
-        <div class="ci"><code>x-ui log</code><span>View logs</span></div>
-        <div class="ci"><code>x-ui update</code><span>Update panel</span></div>
-        <div class="ci"><code>x-ui uninstall</code><span>Uninstall</span></div>
+        <div class="ci"><code>x-ui</code><span>管理菜单</span></div>
+        <div class="ci"><code>x-ui status</code><span>查看状态</span></div>
+        <div class="ci"><code>x-ui start</code><span>启动面板</span></div>
+        <div class="ci"><code>x-ui stop</code><span>停止面板</span></div>
+        <div class="ci"><code>x-ui restart</code><span>重启面板</span></div>
+        <div class="ci"><code>x-ui log</code><span>查看日志</span></div>
+        <div class="ci"><code>x-ui update</code><span>更新面板</span></div>
+        <div class="ci"><code>x-ui uninstall</code><span>卸载面板</span></div>
       </div>
     </div>
   </section>
@@ -328,14 +328,14 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--accent2)}
     <div class="container">
       <div class="section-header">
         <div class="section-tag">Screenshots</div>
-        <h2>Interface Preview</h2>
-        <p class="desc">Clean and intuitive web management interface</p>
+        <h2>界面截图</h2>
+        <p class="desc">简洁直观的 Web 管理界面</p>
       </div>
       <div class="shot-grid">
-        <img src="https://raw.githubusercontent.com/motao123/x-ui/main/media/2022-04-17_111910.png" alt="Dashboard">
-        <img src="https://raw.githubusercontent.com/motao123/x-ui/main/media/2022-04-17_111705.png" alt="Inbounds">
-        <img src="https://raw.githubusercontent.com/motao123/x-ui/main/media/2022-04-17_111321.png" alt="Inbound Config">
-        <img src="https://raw.githubusercontent.com/motao123/x-ui/main/media/bda84fbc2ede834deaba1c173a932223.png" alt="System Status">
+        <img src="https://raw.githubusercontent.com/motao123/x-ui/main/media/2022-04-17_111910.png" alt="面板首页">
+        <img src="https://raw.githubusercontent.com/motao123/x-ui/main/media/2022-04-17_111705.png" alt="入站管理">
+        <img src="https://raw.githubusercontent.com/motao123/x-ui/main/media/2022-04-17_111321.png" alt="入站配置">
+        <img src="https://raw.githubusercontent.com/motao123/x-ui/main/media/bda84fbc2ede834deaba1c173a932223.png" alt="系统状态">
       </div>
     </div>
   </section>
@@ -343,16 +343,16 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--accent2)}
 
 <footer class="ft">
   <div class="container">
-    <p><a href="https://github.com/motao123/x-ui" target="_blank">motao123/x-ui</a> &middot; MIT License &middot; Built with Go</p>
+    <p><a href="https://github.com/motao123/x-ui" target="_blank">motao123/x-ui</a> &middot; MIT 开源协议 &middot; 使用 Go 构建</p>
   </div>
 </footer>
 
 <script>
 function cpy(btn){
   navigator.clipboard.writeText("bash <(curl -Ls https://raw.githubusercontent.com/motao123/x-ui/main/install.sh)").then(function(){
-    btn.textContent='Copied';
+    btn.textContent='已复制';
     btn.classList.add('copied');
-    setTimeout(function(){btn.textContent='Copy';btn.classList.remove('copied')},2000);
+    setTimeout(function(){btn.textContent='复制';btn.classList.remove('copied')},2000);
   });
 }
 </script>

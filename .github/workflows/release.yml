@@ -76,6 +76,7 @@ jobs:
           mkdir -p release/amd64/x-ui
           cp build/amd64/x-ui release/amd64/x-ui/
           cp -r build/amd64/bin release/amd64/x-ui/
+          cp bin/*.dat release/amd64/x-ui/bin/
           cp x-ui.service release/amd64/x-ui/
           cp x-ui.sh release/amd64/x-ui/
           cd release/amd64 && tar -czvf ../../x-ui-linux-amd64.tar.gz x-ui && cd ../..
@@ -84,6 +85,7 @@ jobs:
           mkdir -p release/arm64/x-ui
           cp build/arm64/x-ui release/arm64/x-ui/
           cp -r build/arm64/bin release/arm64/x-ui/
+          cp bin/*.dat release/arm64/x-ui/bin/
           cp x-ui.service release/arm64/x-ui/
           cp x-ui.sh release/arm64/x-ui/
           cd release/arm64 && tar -czvf ../../x-ui-linux-arm64.tar.gz x-ui && cd ../..

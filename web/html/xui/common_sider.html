@@ -50,7 +50,7 @@
         {{template "menuItems" .}}
     </a-menu>
 </a-drawer>
-<script>
+<script nonce="{{ .csp_nonce }}">
 
     const siderDrawer = {
         visible: false,

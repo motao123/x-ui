@@ -2,8 +2,10 @@ package web
 
 import (
 	"context"
+	"crypto/rand"
 	"crypto/tls"
 	"embed"
+	"encoding/base64"
 	"html/template"
 	"io"
 	"io/fs"
@@ -159,6 +161,16 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 
 	engine := gin.Default()
 
+	// 配置受信代理：仅当直连对端在 webTrustedProxies 列表内时，才信任 X-Forwarded-For。
+	// 默认空列表 = 不信任任何代理，gin.ClientIP() 只返回 TCP 对端 IP。
+	trustedProxiesRaw, _ := s.settingService.GetTrustedProxies()
+	trustedProxies := parseTrustedProxiesForGin(trustedProxiesRaw)
+	if len(trustedProxies) == 0 {
+		_ = engine.SetTrustedProxies(nil)
+	} else {
+		_ = engine.SetTrustedProxies(trustedProxies)
+	}
+
 	secret, err := s.settingService.GetSecret()
 	if err != nil {
 		return nil, err
@@ -229,14 +241,39 @@ func (s *Server) securityHeaders() gin.HandlerFunc {
 		c.Header("X-Frame-Options", "DENY")
 		c.Header("Referrer-Policy", "same-origin")
 		c.Header("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
-		// The current templates include multiple inline scripts for page/component initialization.
-		// Allow inline scripts to avoid a blank page while keeping other CSP restrictions in place.
-		c.Header("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'")
+		// 为本次请求生成一次性 CSP nonce，注入到所有内联 <script> 标签，
+		// 从而移除 'unsafe-inline'：攻击者无法预测 nonce，无法通过注入 <script> 执行代码。
+		// 'unsafe-eval' 仍需保留，因为 Vue 完整版在浏览器端运行时编译模板。
+		nonce := cspNonce()
+		c.Set("csp_nonce", nonce)
+		c.Header("Content-Security-Policy",
+			"default-src 'self'; "+
+				"script-src 'self' 'nonce-"+nonce+"' 'unsafe-eval'; "+
+				"style-src 'self' 'unsafe-inline'; "+
+				"img-src 'self' data:; "+
+				"connect-src 'self'; "+
+				"object-src 'none'; "+
+				"base-uri 'self'; "+
+				"form-action 'self'; "+
+				"frame-ancestors 'none'")
 		if s.cookieSecure {
 			c.Header("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
 		}
 		c.Next()
 	}
+}
+
+// cspNonce 生成 128 位 base64url 随机 nonce，用于 CSP script-src。
+func cspNonce() string {
+	b := make([]byte, 16)
+	if _, err := rand.Read(b); err != nil {
+		// rand.Read 极少失败；回退到时间戳派生值，保证 nonce 仍有较高熵。
+		now := time.Now().UnixNano()
+		for i := range b {
+			b[i] = byte(now >> (i % 8 * 8))
+		}
+	}
+	return base64.RawURLEncoding.EncodeToString(b)
 }
 
 func (s *Server) csrfTokenGuard() gin.HandlerFunc {
@@ -508,4 +545,27 @@ func (s *Server) GetCtx() context.Context {
 
 func (s *Server) GetCron() *cron.Cron {
 	return s.cron
+}
+
+// parseTrustedProxiesForGin 将逗号分隔的 IP/CIDR 列表解析为 gin.SetTrustedProxies 接受的字符串切片。
+// gin 仅接受单 IP 或 CIDR 字符串，这里直接返回去重后的非空条目。
+func parseTrustedProxiesForGin(raw string) []string {
+	var result []string
+	seen := make(map[string]bool)
+	for _, item := range strings.Split(raw, ",") {
+		item = strings.TrimSpace(item)
+		if item == "" || seen[item] {
+			continue
+		}
+		if strings.Contains(item, "/") {
+			if _, _, err := net.ParseCIDR(item); err != nil {
+				continue
+			}
+		} else if net.ParseIP(item) == nil {
+			continue
+		}
+		seen[item] = true
+		result = append(result, item)
+	}
+	return result
 }

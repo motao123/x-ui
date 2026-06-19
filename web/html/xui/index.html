@@ -196,7 +196,7 @@
     </a-modal>
 </a-layout>
 {{template "js" .}}
-<script>
+<script nonce="{{ .csp_nonce }}">
 
     const State = {
         Running: "running",

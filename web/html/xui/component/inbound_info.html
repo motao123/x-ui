@@ -90,7 +90,7 @@
 {{end}}
 
 {{define "component/inboundInfo"}}
-<script>
+<script nonce="{{ .csp_nonce }}">
     Vue.component('inbound-info', {
         delimiters: ['[[', ']]'],
         props: ["dbInbound", "inbound"],

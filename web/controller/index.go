@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"sync"
 	"time"
+	"x-ui/database"
 	"x-ui/logger"
 	"x-ui/web/job"
 	"x-ui/web/service"
@@ -99,6 +100,11 @@ func (a *IndexController) login(c *gin.Context) {
 
 	err = session.SetLoginUser(c, user)
 	logger.Info("user", user.Id, "login success")
+	// 首次登录成功后清理初始随机口令文件，避免明文口令长期残留在磁盘上。
+	// 删除失败不影响登录流程，仅记录日志。
+	if rmErr := database.RemoveInitialPasswordFile(); rmErr != nil {
+		logger.Warning("failed to remove initial admin password file:", rmErr)
+	}
 	securityLog(c, "login_success", err == nil, " username=", form.Username)
 	jsonMsg(c, "登录", err)
 }

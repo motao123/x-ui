@@ -38,6 +38,7 @@ type AllSetting struct {
 	WebCertFile        string `json:"webCertFile" form:"webCertFile"`
 	WebKeyFile         string `json:"webKeyFile" form:"webKeyFile"`
 	WebBasePath        string `json:"webBasePath" form:"webBasePath"`
+	WebTrustedProxies  string `json:"webTrustedProxies" form:"webTrustedProxies"`
 	TgBotEnable        bool   `json:"tgBotEnable" form:"tgBotEnable"`
 	TgBotToken         string `json:"tgBotToken" form:"tgBotToken"`
 	TgBotChatId        int    `json:"tgBotChatId" form:"tgBotChatId"`
@@ -83,6 +84,10 @@ func (s *AllSetting) CheckValid() error {
 		return common.NewError("web base path is invalid:", s.WebBasePath)
 	}
 
+	if err := validateTrustedProxies(s.WebTrustedProxies); err != nil {
+		return err
+	}
+
 	xrayConfig := &xray.Config{}
 	err := json.Unmarshal([]byte(s.XrayTemplateConfig), xrayConfig)
 	if err != nil {
@@ -103,4 +108,108 @@ func isSafeAbsPath(path string) bool {
 	}
 	cleaned := filepath.Clean(path)
 	return cleaned == path && !strings.Contains(path, "..")
+}
+
+// validateTrustedProxies 校验 webTrustedProxies 字段：空值合法（不信任任何代理），
+// 非空时必须是逗号分隔的合法 IP 或 CIDR 列表。
+func validateTrustedProxies(raw string) error {
+	if strings.TrimSpace(raw) == "" {
+		return nil
+	}
+	for _, item := range strings.Split(raw, ",") {
+		item = strings.TrimSpace(item)
+		if item == "" {
+			continue
+		}
+		if strings.Contains(item, "/") {
+			if _, _, err := net.ParseCIDR(item); err != nil {
+				return common.NewError("web trusted proxies contains invalid CIDR:", item)
+			}
+			continue
+		}
+		if net.ParseIP(item) == nil {
+			return common.NewError("web trusted proxies contains invalid IP:", item)
+		}
+	}
+	return nil
+}
+
+// ParseTrustedProxies 将逗号分隔的可信代理配置解析为 CIDR 列表。
+// 用于每次请求时回溯 X-Forwarded-For。空配置返回 nil。
+func ParseTrustedProxies(raw string) []*net.IPNet {
+	var nets []*net.IPNet
+	for _, item := range strings.Split(raw, ",") {
+		item = strings.TrimSpace(item)
+		if item == "" {
+			continue
+		}
+		if strings.Contains(item, "/") {
+			if _, ipnet, err := net.ParseCIDR(item); err == nil {
+				nets = append(nets, ipnet)
+			}
+			continue
+		}
+		if ip := net.ParseIP(item); ip != nil {
+			nets = append(nets, singleIPNet(ip))
+		}
+	}
+	return nets
+}
+
+func singleIPNet(ip net.IP) *net.IPNet {
+	var bits int
+	if ip.To4() != nil {
+		bits = 32
+	} else {
+		bits = 128
+	}
+	return &net.IPNet{IP: ip, Mask: net.CIDRMask(bits, bits)}
+}
+
+// ResolveClientIP 根据受信代理网段从 X-Forwarded-For 链中回溯出真实客户端 IP。
+// remoteAddr 为 TCP 直连对端地址。如果直连对端不在受信代理集合内，直接返回其对端 IP，
+// 忽略任何 XFF 头，避免伪造。
+func ResolveClientIP(remoteAddr string, trustedProxies []*net.IPNet, xff string) string {
+	peer := hostFromAddr(remoteAddr)
+	if len(trustedProxies) == 0 {
+		return peer
+	}
+	if peer == "" || !ipInAny(peer, trustedProxies) {
+		// 直连对端不是受信代理，XFF 不可信
+		return peer
+	}
+	// XFF 形如 "client, proxy1, proxy2"；从右向左跳过受信代理，第一个非可信即真实客户端
+	parts := strings.Split(xff, ",")
+	for i := len(parts) - 1; i >= 0; i-- {
+		candidate := strings.TrimSpace(parts[i])
+		if candidate == "" {
+			continue
+		}
+		if ipInAny(candidate, trustedProxies) {
+			continue
+		}
+		return candidate
+	}
+	return peer
+}
+
+func ipInAny(ipStr string, nets []*net.IPNet) bool {
+	ip := net.ParseIP(ipStr)
+	if ip == nil {
+		return false
+	}
+	for _, n := range nets {
+		if n.Contains(ip) {
+			return true
+		}
+	}
+	return false
+}
+
+func hostFromAddr(remoteAddr string) string {
+	host := remoteAddr
+	if h, _, err := net.SplitHostPort(remoteAddr); err == nil {
+		host = h
+	}
+	return host
 }

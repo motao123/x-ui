@@ -30,6 +30,7 @@ var defaultValueMap = map[string]string{
 	"webKeyFile":         "",
 	"secret":             random.Seq(32),
 	"webBasePath":        "/",
+	"webTrustedProxies":  "",
 	"timeLocation":       "Asia/Shanghai",
 	"tgBotEnable":        "false",
 	"tgBotToken":         "",
@@ -314,6 +315,18 @@ func (s *SettingService) GetSecret() ([]byte, error) {
 	return []byte(secret), err
 }
 
+// RotateSecret 生成新的会话签名密钥并持久化。
+// 用于安全事件后轮换会话密钥：旧密钥签发的所有 Cookie 会立即失效，
+// 迫使用户重新登录。返回新密钥便于调用方记录或展示。
+func (s *SettingService) RotateSecret() ([]byte, error) {
+	newSecret := random.Seq(32)
+	if err := s.saveSetting("secret", newSecret); err != nil {
+		return nil, err
+	}
+	logger.Info("session secret rotated")
+	return []byte(newSecret), nil
+}
+
 func (s *SettingService) GetBasePath() (string, error) {
 	basePath, err := s.getString("webBasePath")
 	if err != nil {
@@ -326,6 +339,16 @@ func (s *SettingService) GetBasePath() (string, error) {
 		basePath += "/"
 	}
 	return basePath, nil
+}
+
+// GetTrustedProxies 返回 webTrustedProxies 配置（逗号分隔的 IP/CIDR 列表，空表示不信任任何代理）。
+func (s *SettingService) GetTrustedProxies() (string, error) {
+	return s.getString("webTrustedProxies")
+}
+
+// SetTrustedProxies 设置 webTrustedProxies 配置。
+func (s *SettingService) SetTrustedProxies(value string) error {
+	return s.setString("webTrustedProxies", value)
 }
 
 func (s *SettingService) GetTimeLocation() (*time.Location, error) {

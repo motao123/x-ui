@@ -3,11 +3,11 @@ package controller
 import (
 	"errors"
 	"fmt"
-	"net"
 	"net/http"
 	"x-ui/config"
 	"x-ui/logger"
 	"x-ui/web/entity"
+	"x-ui/web/service"
 	"x-ui/web/session"
 
 	"github.com/gin-gonic/gin"
@@ -23,12 +23,11 @@ func getUriId(c *gin.Context) int64 {
 }
 
 func getRemoteIp(c *gin.Context) string {
-	addr := c.Request.RemoteAddr
-	ip, _, err := net.SplitHostPort(addr)
-	if err == nil && ip != "" {
-		return ip
-	}
-	return addr
+	var settingService service.SettingService
+	raw, _ := settingService.GetTrustedProxies()
+	trusted := entity.ParseTrustedProxies(raw)
+	xff := c.GetHeader("X-Forwarded-For")
+	return entity.ResolveClientIP(c.Request.RemoteAddr, trusted, xff)
 }
 
 func jsonMsg(c *gin.Context, msg string, err error) {
@@ -95,6 +94,9 @@ func html(c *gin.Context, name string, title string, data gin.H) {
 		return
 	}
 	data["csrf_token"] = csrfToken
+	if nonce, ok := c.Get("csp_nonce"); ok {
+		data["csp_nonce"] = nonce
+	}
 	c.HTML(http.StatusOK, name, getContext(data))
 }
 

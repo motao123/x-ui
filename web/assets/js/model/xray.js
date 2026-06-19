@@ -797,7 +797,7 @@ class Inbound extends XrayCommonClass {
         }
         if (this.protocol === Protocols.TROJAN) {
             this.tls = true;
-
+        }
     }
 
     validateTlsConfig() {

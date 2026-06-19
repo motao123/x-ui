@@ -297,7 +297,7 @@ install_x-ui() {
             return 0
         fi
         echo -e "检测到 x-ui 最新版本：${last_version}，开始安装"
-        wget -N --no-check-certificate -O /usr/local/x-ui-linux-${arch}.tar.gz https://github.com/motao123/x-ui/releases/download/${last_version}/x-ui-linux-${arch}.tar.gz
+        wget -N -O /usr/local/x-ui-linux-${arch}.tar.gz https://github.com/motao123/x-ui/releases/download/${last_version}/x-ui-linux-${arch}.tar.gz
         if [[ $? -ne 0 ]]; then
             install_from_source
             config_after_install
@@ -311,7 +311,7 @@ install_x-ui() {
         last_version=$1
         url="https://github.com/motao123/x-ui/releases/download/${last_version}/x-ui-linux-${arch}.tar.gz"
         echo -e "开始安装 x-ui v$1"
-        wget -N --no-check-certificate -O /usr/local/x-ui-linux-${arch}.tar.gz ${url}
+        wget -N -O /usr/local/x-ui-linux-${arch}.tar.gz ${url}
         if [[ $? -ne 0 ]]; then
             echo -e "${red}下载 x-ui v$1 失败，请确保此版本存在${plain}"
             exit 1
@@ -330,7 +330,13 @@ install_x-ui() {
     chown -R :xray bin
     chmod -R g+rX bin
     cp -f x-ui.service /etc/systemd/system/
-    wget --no-check-certificate -O /usr/bin/x-ui https://raw.githubusercontent.com/motao123/x-ui/main/x-ui.sh
+    # 优先使用刚解压 Release 包内的 x-ui.sh（已随包通过 HTTPS 下载），
+    # 避免再次从 raw.githubusercontent 下载可执行脚本到 /usr/bin。
+    if [[ -f ./x-ui.sh ]]; then
+        cp -f ./x-ui.sh /usr/bin/x-ui
+    else
+        wget -O /usr/bin/x-ui https://raw.githubusercontent.com/motao123/x-ui/main/x-ui.sh
+    fi
     chmod +x /usr/local/x-ui/x-ui.sh
     chmod +x /usr/bin/x-ui
     config_after_install

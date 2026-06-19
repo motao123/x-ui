@@ -174,6 +174,21 @@ func updateTgbotSetting(tgBotToken string, tgBotChatid int, tgBotRuntime string)
 	}
 }
 
+func rotateSessionSecret() {
+	err := database.InitDB(config.GetDBPath())
+	if err != nil {
+		fmt.Println("init db failed:", err)
+		os.Exit(1)
+	}
+	settingService := service.SettingService{}
+	_, err = settingService.RotateSecret()
+	if err != nil {
+		fmt.Println("rotate session secret failed:", err)
+		os.Exit(1)
+	}
+	fmt.Println("rotate session secret success. All existing sessions are now invalid; please restart the panel.")
+}
+
 func updateSetting(port int, username string, password string) {
 	err := database.InitDB(config.GetDBPath())
 	if err != nil {
@@ -229,6 +244,7 @@ func main() {
 	var tgbotRuntime string
 	var reset bool
 	var show bool
+	var rotateSecret bool
 	settingCmd.BoolVar(&reset, "reset", false, "reset all settings")
 	settingCmd.BoolVar(&show, "show", false, "show current settings")
 	settingCmd.IntVar(&port, "port", 0, "set panel port")
@@ -238,6 +254,7 @@ func main() {
 	settingCmd.StringVar(&tgbotRuntime, "tgbotRuntime", "", "set telegrame bot cron time")
 	settingCmd.IntVar(&tgbotchatid, "tgbotchatid", 0, "set telegrame bot chat id")
 	settingCmd.BoolVar(&enabletgbot, "enabletgbot", false, "enable telegram bot notify")
+	settingCmd.BoolVar(&rotateSecret, "rotatesecret", false, "rotate session signing secret (invalidates all existing sessions, requires panel restart)")
 
 	oldUsage := flag.Usage
 	flag.Usage = func() {
@@ -278,6 +295,9 @@ func main() {
 		if err != nil {
 			fmt.Println(err)
 			return
+		}
+		if rotateSecret {
+			rotateSessionSecret()
 		}
 		if reset {
 			resetSetting()

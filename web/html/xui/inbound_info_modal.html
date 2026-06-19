@@ -5,7 +5,7 @@
          ok-text="复制链接" cancel-text='{{ i18n "close" }}' :ok-button-props="infoModal.okBtnPros">
     <inbound-info :db-inbound="dbInbound" :inbound="inbound"></inbound-info>
 </a-modal>
-<script>
+<script nonce="{{ .csp_nonce }}">
 
     const infoModal = {
         visible: false,

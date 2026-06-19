@@ -75,7 +75,7 @@
     </transition>
 </a-layout>
 {{template "js" .}}
-<script>
+<script nonce="{{ .csp_nonce }}">
     const leftColor = RandomUtil.randomIntRange(0x222222, 0xFFFFFF / 2).toString(16);
     const rightColor = RandomUtil.randomIntRange(0xFFFFFF / 2, 0xDDDDDD).toString(16);
     const deg = RandomUtil.randomIntRange(0, 360);

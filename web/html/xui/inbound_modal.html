@@ -5,7 +5,7 @@
          width="700px" :body-style="{ maxHeight: '75vh', overflowY: 'auto' }">
     {{template "form/inbound"}}
 </a-modal>
-<script>
+<script nonce="{{ .csp_nonce }}">
 
     const inModal = {
         title: '',

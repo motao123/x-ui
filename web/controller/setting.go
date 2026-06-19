@@ -3,6 +3,8 @@ package controller
 import (
 	"errors"
 	"time"
+	"x-ui/database"
+	"x-ui/logger"
 	"x-ui/web/entity"
 	"x-ui/web/service"
 	"x-ui/web/session"
@@ -80,6 +82,10 @@ func (a *SettingController) updateUser(c *gin.Context) {
 	if err == nil {
 		user.Username = form.NewUsername
 		session.SetLoginUser(c, user)
+		// 修改密码成功后清理初始随机口令文件（若仍存在）。
+		if rmErr := database.RemoveInitialPasswordFile(); rmErr != nil {
+			logger.Warning("failed to remove initial admin password file:", rmErr)
+		}
 	}
 	securityLog(c, "user_update", err == nil, " target_user_id=", user.Id)
 	jsonMsg(c, "修改用户", err)

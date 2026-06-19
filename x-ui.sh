@@ -315,13 +315,17 @@ install_bbr() {
 }
 
 update_shell() {
-    wget -O /usr/bin/x-ui -N --no-check-certificate https://github.com/motao123/x-ui/raw/main/x-ui.sh
+    wget -O /usr/bin/x-ui -N https://github.com/motao123/x-ui/raw/main/x-ui.sh
     if [[ $? != 0 ]]; then
         echo ""
         LOGE "下载脚本失败，请检查本机能否连接 Github"
         before_show_menu
     else
         chmod +x /usr/bin/x-ui
+        # 打印下载脚本的 SHA256，便于运维核对，防止下载内容被篡改
+        if command -v sha256sum >/dev/null 2>&1; then
+            LOGI "已下载脚本 SHA256: $(sha256sum /usr/bin/x-ui | awk '{print $1}')"
+        fi
         LOGI "升级脚本成功，请重新运行脚本" && exit 0
     fi
 }

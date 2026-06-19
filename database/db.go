@@ -35,11 +35,27 @@ func initUser(dbPath string) error {
 		if writeErr := os.WriteFile(passwordFile, []byte(password+"\n"), 0600); writeErr != nil {
 			logger.Warning("no user found, created initial admin user with random password. username: admin. Failed to write initial password file: ", writeErr)
 		} else {
-			logger.Warning("no user found, created initial admin user with random password. username: admin. Initial password was written to ", passwordFile, " . Delete this file after changing the password.")
+			logger.Warning("no user found, created initial admin user with random password. username: admin. Initial password was written to ", passwordFile, " . It will be removed automatically after first login or password change.")
 		}
 		return db.Create(user).Error
 	}
 	return nil
+}
+
+// RemoveInitialPasswordFile 删除首次安装时生成的随机口令文件。
+// 在管理员首次登录或修改密码后调用，避免明文口令长期残留在磁盘上。
+// 文件不存在时返回 nil（视为已清理）。
+func RemoveInitialPasswordFile() error {
+	passwordFile := config.GetDBPath() + ".initial-admin-password"
+	err := os.Remove(passwordFile)
+	if err == nil {
+		logger.Info("removed initial admin password file:", passwordFile)
+		return nil
+	}
+	if os.IsNotExist(err) {
+		return nil
+	}
+	return err
 }
 
 func initInbound() error {

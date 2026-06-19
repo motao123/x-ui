@@ -147,7 +147,7 @@
     </a-layout>
 </a-layout>
 {{template "js" .}}
-<script>
+<script nonce="{{ .csp_nonce }}">
 
     const columns = [{
         title: "操作",

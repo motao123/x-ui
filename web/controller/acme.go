@@ -145,10 +145,13 @@ func requestAcmeCertificate(domain string, email string) (string, string, error)
 
 	certFile := filepath.Join(domainDir, "fullchain.cer")
 	keyFile := filepath.Join(domainDir, "private.key")
-	if err := os.WriteFile(certFile, resource.Certificate, 0600); err != nil {
+	if err := os.WriteFile(certFile, resource.Certificate, 0640); err != nil {
 		return "", "", err
 	}
-	if err := os.WriteFile(keyFile, resource.PrivateKey, 0600); err != nil {
+	if err := os.WriteFile(keyFile, resource.PrivateKey, 0640); err != nil {
+		return "", "", err
+	}
+	if err := setAcmeCertificatePermissions(filepath.Dir(acmeBaseDir), acmeBaseDir, domainDir, certFile, keyFile); err != nil {
 		return "", "", err
 	}
 	return certFile, keyFile, nil
@@ -252,4 +255,3 @@ func saveAcmeRegistration(dir string, user *acmeUser) error {
 	}
 	return os.WriteFile(filepath.Join(dir, "account.json"), data, 0600)
 }
-

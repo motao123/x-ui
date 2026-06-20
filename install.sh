@@ -242,6 +242,8 @@ install_from_source() {
     setup_xray_user
     chown -R :xray /usr/local/x-ui/bin
     chmod -R g+rX /usr/local/x-ui/bin
+    chown :xray /etc/x-ui
+    chmod 0750 /etc/x-ui
     last_version="source-main"
     cleanup_source_build
 }
@@ -327,8 +329,11 @@ install_x-ui() {
     cd x-ui
     chmod +x x-ui bin/xray-linux-${arch}
     setup_xray_user
+    mkdir -p /etc/x-ui
     chown -R :xray bin
     chmod -R g+rX bin
+    chown :xray /etc/x-ui
+    chmod 0750 /etc/x-ui
     cp -f x-ui.service /etc/systemd/system/
     # 优先使用刚解压 Release 包内的 x-ui.sh（已随包通过 HTTPS 下载），
     # 避免再次从 raw.githubusercontent 下载可执行脚本到 /usr/bin。

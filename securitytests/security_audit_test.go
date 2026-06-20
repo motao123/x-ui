@@ -47,3 +47,33 @@ func TestLoginRateLimitAndSessionRotationArePresent(t *testing.T) {
 		}
 	}
 }
+
+func TestAcmeCertificatesAreReadableByXrayUser(t *testing.T) {
+	acme := readSource(t, "../web/controller/acme.go")
+	permissions := readSource(t, "../web/controller/acme_permissions_unix.go")
+	install := readSource(t, "../install.sh")
+	for _, want := range []string{"setAcmeCertificatePermissions", "0640", "filepath.Dir(acmeBaseDir)"} {
+		if !strings.Contains(acme, want) {
+			t.Fatalf("expected ACME source to contain %q", want)
+		}
+	}
+	for _, want := range []string{"user.LookupGroup(\"xray\")", "os.Chown", "0750", "0640"} {
+		if !strings.Contains(permissions, want) {
+			t.Fatalf("expected ACME permissions source to contain %q", want)
+		}
+	}
+	for _, want := range []string{"chown :xray /etc/x-ui", "chmod 0750 /etc/x-ui"} {
+		if !strings.Contains(install, want) {
+			t.Fatalf("expected install script to contain %q", want)
+		}
+	}
+}
+
+func TestReleasePackageIncludesXrayGeodata(t *testing.T) {
+	workflow := readSource(t, "../.github/workflows/release.yml")
+	for _, want := range []string{"cp bin/*.dat release/amd64/x-ui/bin/", "cp bin/*.dat release/arm64/x-ui/bin/", "hashFiles('bin/*.dat'"} {
+		if !strings.Contains(workflow, want) {
+			t.Fatalf("expected release workflow to contain %q", want)
+		}
+	}
+}

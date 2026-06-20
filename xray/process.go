@@ -66,6 +66,7 @@ type process struct {
 	config  *Config
 	lines   *queue.Queue
 	exitErr error
+	done    chan error
 }
 
 func newProcess(config *Config) *process {
@@ -73,6 +74,7 @@ func newProcess(config *Config) *process {
 		version: "Unknown",
 		config:  config,
 		lines:   queue.New(100),
+		done:    make(chan error, 1),
 	}
 }
 
@@ -211,11 +213,21 @@ func (p *process) Start() (err error) {
 	}()
 
 	go func() {
-		err := cmd.Run()
-		if err != nil {
-			p.exitErr = err
+		runErr := cmd.Run()
+		if runErr != nil {
+			p.exitErr = runErr
 		}
+		p.done <- runErr
 	}()
+
+	select {
+	case runErr := <-p.done:
+		if runErr != nil {
+			return common.NewErrorf("xray 启动失败: %s", p.GetResult())
+		}
+		return errors.New("xray exited immediately")
+	case <-time.After(500 * time.Millisecond):
+	}
 
 	p.refreshVersion()
 	p.refreshAPIPort()
@@ -232,13 +244,8 @@ func (p *process) Stop() error {
 	if err != nil {
 		return p.cmd.Process.Kill()
 	}
-	done := make(chan bool)
-	go func() {
-		p.cmd.Wait()
-		done <- true
-	}()
 	select {
-	case <-done:
+	case <-p.done:
 		return nil
 	case <-time.After(2 * time.Second):
 		return p.cmd.Process.Kill()

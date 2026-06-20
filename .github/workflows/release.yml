@@ -28,7 +28,7 @@ jobs:
           path: |
             build/amd64/bin
             build/arm64/bin
-          key: xray-v25.3.6
+          key: xray-v25.3.6-${{ hashFiles('bin/*.dat', '.github/workflows/release.yml') }}
 
       - name: Download Xray binaries
         if: steps.cache-xray.outputs.cache-hit != 'true'

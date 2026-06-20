@@ -409,7 +409,7 @@ show_enable_status() {
 
 check_xray_status() {
     count=$(ps -ef | grep "xray-linux" | grep -v "grep" | wc -l)
-    if [[ count -ne 0 ]]; then
+    if [[ ${count} -ne 0 ]]; then
         return 0
     else
         return 1

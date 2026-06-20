@@ -17,7 +17,7 @@
     </a-form-item>
     <a-form-item v-if="!inbound.reality" label="ACME">
         <a-input-search v-model.trim="acmeEmail" enter-button="一键申请 SSL"
-                        placeholder="可选邮箱，留空自动生成"
+                        placeholder="请输入邮箱，用于 ACME 证书注册"
                         :loading="acmeLoading"
                         @search="applyAcmeCert"></a-input-search>
     </a-form-item>

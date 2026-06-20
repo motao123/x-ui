@@ -140,6 +140,10 @@
                     this.$message.error('请先填写域名');
                     return;
                 }
+                if (ObjectUtil.isEmpty(this.acmeEmail)) {
+                    this.$message.error('请填写邮箱地址');
+                    return;
+                }
                 this.acmeLoading = true;
                 const msg = await HttpUtil.post('/server/acme/apply', {
                     domain: domain,

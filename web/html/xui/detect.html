@@ -43,7 +43,7 @@
     {{ template "commonSider" . }}
     <a-layout id="content-layout">
         <a-layout-content>
-            <a-spin :spinning="spinning" :delay="200" tip="检测中"/>
+            <a-spin :spinning="spinningIP || spinningUnlock || spinningProtocols" :delay="200" tip="检测中"/>
             <transition name="list" appear>
                 <div>
                     <a-card class="detect-card" title="网络检测">
@@ -51,6 +51,7 @@
                             <a-button type="primary" icon="thunderbolt" @click="detectAll">全部检测</a-button>
                             <a-button icon="global" @click="detectIP">检测 IP</a-button>
                             <a-button icon="api" @click="detectUnlock">检测解锁</a-button>
+                            <a-button icon="check-circle" @click="detectProtocols">检测现有协议</a-button>
                             <a-checkbox v-model="force">强制刷新缓存</a-checkbox>
                         </div>
                         <a-alert type="info" show-icon
@@ -116,6 +117,27 @@
                                 </a-list>
                                 <a-empty v-else description="尚未检测平台"></a-empty>
                             </a-card>
+                            <a-card class="detect-card" title="现有协议配置">
+                                <template v-if="protocols.inbounds && protocols.inbounds.length">
+                                    <a-alert v-if="protocols.valid" type="success" show-icon style="margin-bottom: 12px"
+                                             message="当前已配置入站通过 Xray 配置验证"/>
+                                    <a-alert v-else type="error" show-icon style="margin-bottom: 12px"
+                                             :message="protocols.error || 'Xray 配置验证失败'"/>
+                                    <a-list item-layout="horizontal" :data-source="protocols.inbounds">
+                                        <a-list-item slot="renderItem" slot-scope="item">
+                                            <a-list-item-meta>
+                                                <template slot="title">
+                                                    [[ item.protocol ]] : [[ item.port ]]
+                                                    <a-tag>[[ item.network || '-' ]]</a-tag>
+                                                    <a-tag>[[ item.security || 'none' ]]</a-tag>
+                                                </template>
+                                                <template slot="description">[[ item.tag ]]</template>
+                                            </a-list-item-meta>
+                                        </a-list-item>
+                                    </a-list>
+                                </template>
+                                <a-empty v-else description="尚未检测现有协议"></a-empty>
+                            </a-card>
                         </a-col>
                     </a-row>
                 </div>
@@ -130,32 +152,35 @@
         el: '#app',
         data: {
             siderDrawer,
-            spinning: false,
+            spinningIP: false,
+            spinningUnlock: false,
+            spinningProtocols: false,
             force: false,
             ip: {},
             unlock: [],
+            protocols: {},
         },
         methods: {
             async detectIP() {
-                this.spinning = true;
+                this.spinningIP = true;
                 const msg = await HttpUtil.post('/xui/detect/ip', { force: this.force });
-                this.spinning = false;
+                this.spinningIP = false;
                 if (msg.success) this.ip = msg.obj || {};
             },
             async detectUnlock() {
-                this.spinning = true;
+                this.spinningUnlock = true;
                 const msg = await HttpUtil.post('/xui/detect/unlock', { force: this.force });
-                this.spinning = false;
+                this.spinningUnlock = false;
                 if (msg.success) this.unlock = msg.obj || [];
             },
+            async detectProtocols() {
+                this.spinningProtocols = true;
+                const msg = await HttpUtil.post('/xui/detect/protocols');
+                this.spinningProtocols = false;
+                if (msg.success) this.protocols = msg.obj || {};
+            },
             async detectAll() {
-                this.spinning = true;
-                const msg = await HttpUtil.post('/xui/detect/all', { force: this.force });
-                this.spinning = false;
-                if (msg.success && msg.obj) {
-                    this.ip = msg.obj.ip || {};
-                    this.unlock = msg.obj.unlock || [];
-                }
+                await Promise.all([this.detectIP(), this.detectUnlock(), this.detectProtocols()]);
             },
             statusColor(status) {
                 if (status === 'unlocked') return 'green';
@@ -175,7 +200,9 @@
             },
         },
         mounted() {
-            this.detectAll();
+            this.detectIP();
+            this.detectProtocols();
+            this.detectUnlock();
         },
     });
 </script>

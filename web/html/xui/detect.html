@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+{{template "head" .}}
+<style>
+    @media (min-width: 769px) {
+        .ant-layout-content {
+            margin: 24px 16px;
+        }
+    }
+    .detect-toolbar {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 16px;
+    }
+    .detect-meta {
+        color: rgba(0, 0, 0, 0.45);
+        margin-top: 8px;
+    }
+    .detect-value {
+        font-weight: 500;
+        word-break: break-all;
+    }
+    .detect-card {
+        margin-bottom: 16px;
+    }
+</style>
+<body>
+<a-layout id="app" v-cloak>
+    {{ template "commonSider" . }}
+    <a-layout id="content-layout">
+        <a-layout-content>
+            <a-spin :spinning="spinning" :delay="200" tip="检测中"/>
+            <transition name="list" appear>
+                <div>
+                    <a-card class="detect-card" title="网络检测">
+                        <div class="detect-toolbar">
+                            <a-button type="primary" icon="thunderbolt" @click="detectAll">全部检测</a-button>
+                            <a-button icon="global" @click="detectIP">检测 IP</a-button>
+                            <a-button icon="api" @click="detectUnlock">检测解锁</a-button>
+                            <a-checkbox v-model="force">强制刷新缓存</a-checkbox>
+                        </div>
+                        <a-alert type="info" show-icon
+                                 message="检测从服务器发起"
+                                 description="结果表示当前 VPS 到外部平台的网络可达性和地区信息，外部平台策略变化可能导致结果仅供参考。"/>
+                    </a-card>
+
+                    <a-row :gutter="16">
+                        <a-col :xs="24" :lg="10">
+                            <a-card class="detect-card" title="IP 信息">
+                                <template v-if="ip.checkedAt || ip.error">
+                                    <a-alert v-if="ip.error" type="warning" show-icon style="margin-bottom: 12px"
+                                             :message="ip.error"/>
+                                    <a-descriptions :column="1" bordered size="small">
+                                        <a-descriptions-item label="IP"><span class="detect-value">[[ ip.ip || '-' ]]</span></a-descriptions-item>
+                                        <a-descriptions-item label="国家/城市">[[ ip.country || '-' ]] [[ ip.city || '' ]]</a-descriptions-item>
+                                        <a-descriptions-item label="ASN">[[ ip.asn || '-' ]]</a-descriptions-item>
+                                        <a-descriptions-item label="组织">[[ ip.org || '-' ]]</a-descriptions-item>
+                                        <a-descriptions-item label="类型">[[ ip.ipType || '-' ]]</a-descriptions-item>
+                                        <a-descriptions-item label="来源">[[ ip.provider || '-' ]]</a-descriptions-item>
+                                    </a-descriptions>
+                                    <div class="detect-meta">
+                                        [[ ip.cached ? '缓存结果' : '实时检测' ]] | [[ ip.elapsedMs || 0 ]] ms | [[ formatTime(ip.checkedAt) ]]
+                                    </div>
+                                </template>
+                                <a-empty v-else description="尚未检测 IP"></a-empty>
+                            </a-card>
+                        </a-col>
+                        <a-col :xs="24" :lg="14">
+                            <a-card class="detect-card" title="平台可达性">
+                                <a-list v-if="unlock.length" item-layout="horizontal" :data-source="unlock">
+                                    <a-list-item slot="renderItem" slot-scope="item">
+                                        <a-list-item-meta>
+                                            <template slot="title">
+                                                [[ item.name ]]
+                                                <a-tag :color="statusColor(item.status)">[[ statusText(item.status) ]]</a-tag>
+                                                <a-tag v-if="item.region">[[ item.region ]]</a-tag>
+                                            </template>
+                                            <template slot="description">
+                                                [[ item.hint || '-' ]]
+                                                <span class="detect-meta"> | [[ item.cached ? '缓存' : '实时' ]] | [[ item.elapsedMs || 0 ]] ms | [[ formatTime(item.checkedAt) ]]</span>
+                                            </template>
+                                        </a-list-item-meta>
+                                    </a-list-item>
+                                </a-list>
+                                <a-empty v-else description="尚未检测平台"></a-empty>
+                            </a-card>
+                        </a-col>
+                    </a-row>
+                </div>
+            </transition>
+        </a-layout-content>
+    </a-layout>
+</a-layout>
+{{template "js" .}}
+<script nonce="{{ .csp_nonce }}">
+    const app = new Vue({
+        delimiters: ['[[', ']]'],
+        el: '#app',
+        data: {
+            siderDrawer,
+            spinning: false,
+            force: false,
+            ip: {},
+            unlock: [],
+        },
+        methods: {
+            async detectIP() {
+                this.spinning = true;
+                const msg = await HttpUtil.post('/xui/detect/ip', { force: this.force });
+                this.spinning = false;
+                if (msg.success) this.ip = msg.obj || {};
+            },
+            async detectUnlock() {
+                this.spinning = true;
+                const msg = await HttpUtil.post('/xui/detect/unlock', { force: this.force });
+                this.spinning = false;
+                if (msg.success) this.unlock = msg.obj || [];
+            },
+            async detectAll() {
+                this.spinning = true;
+                const msg = await HttpUtil.post('/xui/detect/all', { force: this.force });
+                this.spinning = false;
+                if (msg.success && msg.obj) {
+                    this.ip = msg.obj.ip || {};
+                    this.unlock = msg.obj.unlock || [];
+                }
+            },
+            statusColor(status) {
+                if (status === 'unlocked') return 'green';
+                if (status === 'blocked') return 'red';
+                if (status === 'timeout') return 'orange';
+                return 'default';
+            },
+            statusText(status) {
+                if (status === 'unlocked') return '可用';
+                if (status === 'blocked') return '受限';
+                if (status === 'timeout') return '超时';
+                return '未知';
+            },
+            formatTime(timestamp) {
+                if (!timestamp) return '-';
+                return moment(timestamp * 1000).format('YYYY-MM-DD HH:mm:ss');
+            },
+        },
+        mounted() {
+            this.detectAll();
+        },
+    });
+</script>
+</body>
+</html>

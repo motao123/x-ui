@@ -94,6 +94,9 @@ func html(c *gin.Context, name string, title string, data gin.H) {
 		return
 	}
 	data["csrf_token"] = csrfToken
+	if nonce, ok := c.Get("csp_nonce"); ok {
+		data["csp_nonce"] = nonce
+	}
 	if localizer, ok := c.Get("localizer"); ok {
 		data["localizer"] = localizer
 	}

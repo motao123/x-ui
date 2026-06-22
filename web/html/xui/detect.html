@@ -25,6 +25,18 @@
     .detect-card {
         margin-bottom: 16px;
     }
+    .detect-info-row {
+        display: flex;
+        padding: 8px 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    .detect-info-row:last-child {
+        border-bottom: none;
+    }
+    .detect-info-label {
+        flex: 0 0 88px;
+        color: rgba(0, 0, 0, 0.45);
+    }
 </style>
 <body>
 <a-layout id="app" v-cloak>
@@ -52,14 +64,32 @@
                                 <template v-if="ip.checkedAt || ip.error">
                                     <a-alert v-if="ip.error" type="warning" show-icon style="margin-bottom: 12px"
                                              :message="ip.error"/>
-                                    <a-descriptions :column="1" bordered size="small">
-                                        <a-descriptions-item label="IP"><span class="detect-value">[[ ip.ip || '-' ]]</span></a-descriptions-item>
-                                        <a-descriptions-item label="国家/城市">[[ ip.country || '-' ]] [[ ip.city || '' ]]</a-descriptions-item>
-                                        <a-descriptions-item label="ASN">[[ ip.asn || '-' ]]</a-descriptions-item>
-                                        <a-descriptions-item label="组织">[[ ip.org || '-' ]]</a-descriptions-item>
-                                        <a-descriptions-item label="类型">[[ ip.ipType || '-' ]]</a-descriptions-item>
-                                        <a-descriptions-item label="来源">[[ ip.provider || '-' ]]</a-descriptions-item>
-                                    </a-descriptions>
+                                    <div>
+                                        <div class="detect-info-row">
+                                            <span class="detect-info-label">IP</span>
+                                            <span class="detect-value">[[ ip.ip || '-' ]]</span>
+                                        </div>
+                                        <div class="detect-info-row">
+                                            <span class="detect-info-label">国家/城市</span>
+                                            <span>[[ ip.country || '-' ]] [[ ip.city || '' ]]</span>
+                                        </div>
+                                        <div class="detect-info-row">
+                                            <span class="detect-info-label">ASN</span>
+                                            <span>[[ ip.asn || '-' ]]</span>
+                                        </div>
+                                        <div class="detect-info-row">
+                                            <span class="detect-info-label">组织</span>
+                                            <span>[[ ip.org || '-' ]]</span>
+                                        </div>
+                                        <div class="detect-info-row">
+                                            <span class="detect-info-label">类型</span>
+                                            <span>[[ ip.ipType || '-' ]]</span>
+                                        </div>
+                                        <div class="detect-info-row">
+                                            <span class="detect-info-label">来源</span>
+                                            <span>[[ ip.provider || '-' ]]</span>
+                                        </div>
+                                    </div>
                                     <div class="detect-meta">
                                         [[ ip.cached ? '缓存结果' : '实时检测' ]] | [[ ip.elapsedMs || 0 ]] ms | [[ formatTime(ip.checkedAt) ]]
                                     </div>

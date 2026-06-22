@@ -1,6 +1,7 @@
 package model
 
 import (
+	"encoding/json"
 	"fmt"
 	"x-ui/util/json_util"
 	"x-ui/xray"
@@ -54,11 +55,12 @@ func (i *Inbound) GenXrayInboundConfig() *xray.InboundConfig {
 		listen = fmt.Sprintf("\"%v\"", listen)
 	}
 	streamSettings := i.normalizedStreamSettings()
+	settings := i.normalizedSettings(streamSettings)
 	return &xray.InboundConfig{
 		Listen:         json_util.RawMessage(listen),
 		Port:           i.Port,
 		Protocol:       string(i.Protocol),
-		Settings:       json_util.RawMessage(i.Settings),
+		Settings:       json_util.RawMessage(settings),
 		StreamSettings: json_util.RawMessage(streamSettings),
 		Tag:            i.Tag,
 		Sniffing:       json_util.RawMessage(i.Sniffing),
@@ -70,6 +72,52 @@ func (i *Inbound) normalizedStreamSettings() string {
 		return i.StreamSettings
 	}
 	return i.StreamSettings
+}
+
+func (i *Inbound) normalizedSettings(streamSettings string) string {
+	if i.Settings == "" || (i.Protocol != VLESS && i.Protocol != Trojan) {
+		return i.Settings
+	}
+	security := ""
+	if streamSettings != "" {
+		var stream map[string]interface{}
+		if err := json.Unmarshal([]byte(streamSettings), &stream); err == nil {
+			if value, ok := stream["security"].(string); ok {
+				security = value
+			}
+		}
+	}
+	if security == "xtls" || security == "reality" {
+		return i.Settings
+	}
+
+	var settings map[string]interface{}
+	if err := json.Unmarshal([]byte(i.Settings), &settings); err != nil {
+		return i.Settings
+	}
+	clients, ok := settings["clients"].([]interface{})
+	if !ok {
+		return i.Settings
+	}
+	changed := false
+	for _, item := range clients {
+		client, ok := item.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		if _, ok := client["flow"]; ok {
+			delete(client, "flow")
+			changed = true
+		}
+	}
+	if !changed {
+		return i.Settings
+	}
+	data, err := json.Marshal(settings)
+	if err != nil {
+		return i.Settings
+	}
+	return string(data)
 }
 
 type Setting struct {

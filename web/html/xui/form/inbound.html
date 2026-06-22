@@ -1,13 +1,13 @@
 {{define "form/inbound"}}
 <!-- base -->
 <a-form layout="inline">
-    <a-form-item label='{{ i18n "remark" }}'>
+    <a-form-item label='{{ i18n .localizer "remark" }}'>
         <a-input v-model.trim="dbInbound.remark"></a-input>
     </a-form-item>
-    <a-form-item label='{{ i18n "enable" }}'>
+    <a-form-item label='{{ i18n .localizer "enable" }}'>
         <a-switch v-model="dbInbound.enable"></a-switch>
     </a-form-item>
-    <a-form-item label='{{ i18n "protocol" }}'>
+    <a-form-item label='{{ i18n .localizer "protocol" }}'>
         <a-select v-model="inbound.protocol" style="width: 180px;" @change="protocolChange" show-search :filter-option="filterProtocol">
             <a-select-option v-for="p in Protocols" :key="p" :value="p">[[ protocolName(p) ]]</a-select-option>
         </a-select>
@@ -56,37 +56,37 @@
 
 <!-- vmess settings -->
 <template v-if="inbound.protocol === Protocols.VMESS">
-    {{template "form/vmess"}}
+    {{template "form/vmess" .}}
 </template>
 
 <!-- vless settings -->
 <template v-if="inbound.protocol === Protocols.VLESS">
-    {{template "form/vless"}}
+    {{template "form/vless" .}}
 </template>
 
 <!-- trojan settings -->
 <template v-if="inbound.protocol === Protocols.TROJAN">
-    {{template "form/trojan"}}
+    {{template "form/trojan" .}}
 </template>
 
 <!-- shadowsocks -->
 <template v-if="inbound.protocol === Protocols.SHADOWSOCKS">
-    {{template "form/shadowsocks"}}
+    {{template "form/shadowsocks" .}}
 </template>
 
 <!-- dokodemo-door -->
 <template v-if="inbound.protocol === Protocols.DOKODEMO">
-    {{template "form/dokodemo"}}
+    {{template "form/dokodemo" .}}
 </template>
 
 <!-- socks -->
 <template v-if="inbound.protocol === Protocols.SOCKS">
-    {{template "form/socks"}}
+    {{template "form/socks" .}}
 </template>
 
 <!-- http -->
 <template v-if="inbound.protocol === Protocols.HTTP">
-    {{template "form/http"}}
+    {{template "form/http" .}}
 </template>
 
 
@@ -94,16 +94,16 @@
 
 <!-- stream settings -->
 <template v-if="inbound.canEnableStream() || inbound.protocol === Protocols.TROJAN">
-    {{template "form/streamSettings"}}
+    {{template "form/streamSettings" .}}
 </template>
 
 <!-- tls settings -->
 <template v-if="inbound.canEnableTls()">
-    {{template "form/tlsSettings"}}
+    {{template "form/tlsSettings" .}}
 </template>
 
 <!-- sniffing -->
 <template v-if="inbound.canSniffing()">
-    {{template "form/sniffing"}}
+    {{template "form/sniffing" .}}
 </template>
 {{end}}

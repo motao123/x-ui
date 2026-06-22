@@ -98,8 +98,6 @@ func (s *XrayService) GetXrayTraffic() ([]*xray.Traffic, error) {
 }
 
 func (s *XrayService) RestartXray(isForce bool) error {
-	lock.Lock()
-	defer lock.Unlock()
 	logger.Debug("restart xray, force:", isForce)
 
 	xrayConfig, err := s.GetXrayConfig()
@@ -107,18 +105,21 @@ func (s *XrayService) RestartXray(isForce bool) error {
 		return err
 	}
 
-	if p != nil && p.IsRunning() {
-		if !isForce && p.GetConfig().Equals(xrayConfig) {
-			logger.Debug("not need to restart xray")
-			return nil
-		}
-	}
-
 	// 先验证配置，避免错误配置导致服务中断
 	err = xray.TestConfig(xrayConfig)
 	if err != nil {
 		logger.Debug("xray config test failed:", err)
 		return err
+	}
+
+	lock.Lock()
+	defer lock.Unlock()
+
+	if p != nil && p.IsRunning() {
+		if !isForce && p.GetConfig().Equals(xrayConfig) {
+			logger.Debug("not need to restart xray")
+			return nil
+		}
 	}
 
 	// 保存旧进程引用用于回滚

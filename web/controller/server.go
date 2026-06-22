@@ -4,6 +4,9 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
+	"io"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 	"x-ui/web/global"
@@ -11,6 +14,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/curve25519"
+)
+
+const (
+	defaultLogTailLimit = 64 * 1024
+	maxLogReadLimit     = 1024 * 1024
 )
 
 type ServerController struct {
@@ -23,6 +31,21 @@ type ServerController struct {
 
 	lastVersions        []string
 	lastGetVersionsTime time.Time
+}
+
+type logReadRequest struct {
+	Limit int64 `form:"limit" json:"limit"`
+}
+
+type logReadResponse struct {
+	Enabled   bool   `json:"enabled"`
+	FileName  string `json:"fileName"`
+	Size      int64  `json:"size"`
+	Offset    int64  `json:"offset"`
+	Limit     int64  `json:"limit"`
+	Truncated bool   `json:"truncated"`
+	Content   string `json:"content"`
+	UpdatedAt int64  `json:"updatedAt"`
 }
 
 func NewServerController(g *gin.RouterGroup) *ServerController {
@@ -43,6 +66,8 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 	g.POST("/installXray/:version", a.installXray)
 	g.POST("/acme/apply", a.applyAcmeCert)
 	g.POST("/genX25519", a.genX25519)
+	g.POST("/logs/tail", a.logTail)
+	g.POST("/logs/download", a.logDownload)
 }
 
 func (a *ServerController) refreshStatus() {
@@ -97,6 +122,85 @@ func (a *ServerController) installXray(c *gin.Context) {
 	err := a.serverService.UpdateXray(version)
 	securityLog(c, "xray_install", err == nil, " version=", version)
 	jsonMsg(c, "安装 xray", err)
+}
+
+func (a *ServerController) logTail(c *gin.Context) {
+	var request logReadRequest
+	_ = c.ShouldBind(&request)
+
+	response, err := readConfiguredLogTail(request.Limit)
+	securityLog(c, "view_panel_log", err == nil, " limit=", request.Limit)
+	jsonObj(c, response, err)
+}
+
+func (a *ServerController) logDownload(c *gin.Context) {
+	var request logReadRequest
+	_ = c.ShouldBind(&request)
+	if request.Limit <= 0 {
+		request.Limit = maxLogReadLimit
+	}
+
+	response, err := readConfiguredLogTail(request.Limit)
+	securityLog(c, "download_panel_log", err == nil, " limit=", request.Limit)
+	jsonObj(c, response, err)
+}
+
+func readConfiguredLogTail(limit int64) (*logReadResponse, error) {
+	logPath := strings.TrimSpace(os.Getenv("XUI_LOG_FILE"))
+	if logPath == "" {
+		return &logReadResponse{Enabled: false}, nil
+	}
+
+	limit = clampLogReadLimit(limit)
+	file, err := os.Open(logPath)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	info, err := file.Stat()
+	if err != nil {
+		return nil, err
+	}
+	if !info.Mode().IsRegular() {
+		return nil, errors.New("log file is not a regular file")
+	}
+
+	size := info.Size()
+	offset := size - limit
+	if offset < 0 {
+		offset = 0
+	}
+	readSize := size - offset
+	if _, err := file.Seek(offset, io.SeekStart); err != nil {
+		return nil, err
+	}
+
+	data := make([]byte, readSize)
+	if _, err := io.ReadFull(file, data); err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
+		return nil, err
+	}
+
+	return &logReadResponse{
+		Enabled:   true,
+		FileName:  filepath.Base(logPath),
+		Size:      size,
+		Offset:    offset,
+		Limit:     limit,
+		Truncated: offset > 0,
+		Content:   string(data),
+		UpdatedAt: info.ModTime().Unix(),
+	}, nil
+}
+
+func clampLogReadLimit(limit int64) int64 {
+	if limit <= 0 {
+		return defaultLogTailLimit
+	}
+	if limit > maxLogReadLimit {
+		return maxLogReadLimit
+	}
+	return limit
 }
 
 func (a *ServerController) genX25519(c *gin.Context) {

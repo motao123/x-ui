@@ -19,6 +19,7 @@ require (
 	golang.org/x/crypto v0.31.0
 	golang.org/x/text v0.22.0
 	google.golang.org/grpc v1.70.0
+	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gorm.io/gorm v1.25.8
 )
 

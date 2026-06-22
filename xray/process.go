@@ -260,18 +260,29 @@ func atomicWriteFile(path string, data []byte, perm os.FileMode) error {
 		return err
 	}
 	tmpPath := tmpFile.Name()
+	cleanup := true
+	defer func() {
+		if cleanup {
+			os.Remove(tmpPath)
+		}
+	}()
+
 	if _, err := tmpFile.Write(data); err != nil {
 		tmpFile.Close()
-		os.Remove(tmpPath)
 		return err
 	}
 	if err := tmpFile.Chmod(perm); err != nil {
 		tmpFile.Close()
-		os.Remove(tmpPath)
 		return err
 	}
-	tmpFile.Close()
-	return os.Rename(tmpPath, path)
+	if err := tmpFile.Close(); err != nil {
+		return err
+	}
+	if err := os.Rename(tmpPath, path); err != nil {
+		return err
+	}
+	cleanup = false
+	return nil
 }
 
 // TestConfig 验证 xray 配置是否合法，不启动 xray

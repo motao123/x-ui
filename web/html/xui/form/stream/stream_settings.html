@@ -16,36 +16,36 @@
 
 <!-- tcp -->
 <template v-if="inbound.stream.network === 'tcp'">
-    {{template "form/streamTCP"}}
+    {{template "form/streamTCP" .}}
 </template>
 
 <!-- kcp -->
 <template v-if="inbound.stream.network === 'kcp'">
-    {{template "form/streamKCP"}}
+    {{template "form/streamKCP" .}}
 </template>
 
 <!-- ws -->
 <template v-if="inbound.stream.network === 'ws'">
-    {{template "form/streamWS"}}
+    {{template "form/streamWS" .}}
 </template>
 
 <!-- http -->
 <template v-if="inbound.stream.network === 'http'">
-    {{template "form/streamHTTP"}}
+    {{template "form/streamHTTP" .}}
 </template>
 
 <!-- grpc -->
 <template v-if="inbound.stream.network === 'grpc'">
-    {{template "form/streamGRPC"}}
+    {{template "form/streamGRPC" .}}
 </template>
 
 <!-- httpupgrade -->
 <template v-if="inbound.stream.network === 'httpupgrade'">
-    {{template "form/streamHTTPUpgrade"}}
+    {{template "form/streamHTTPUpgrade" .}}
 </template>
 
 <!-- splithttp -->
 <template v-if="inbound.stream.network === 'splithttp'">
-    {{template "form/streamSplitHTTP"}}
+    {{template "form/streamSplitHTTP" .}}
 </template>
 {{end}}

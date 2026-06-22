@@ -377,9 +377,10 @@ func (s *Server) initI18n(engine *gin.Engine) error {
 		return names
 	}
 
-	var localizer *i18n.Localizer
-
-	engine.FuncMap["i18n"] = func(key string, params ...string) (string, error) {
+	engine.FuncMap["i18n"] = func(localizer *i18n.Localizer, key string, params ...string) (string, error) {
+		if localizer == nil {
+			return "", common.NewError("localizer is nil")
+		}
 		names := findI18nParamNames(key)
 		if len(names) != len(params) {
 			return "", common.NewError("find names:", names, "---------- params:", params, "---------- num not equal")
@@ -396,8 +397,7 @@ func (s *Server) initI18n(engine *gin.Engine) error {
 
 	engine.Use(func(c *gin.Context) {
 		accept := c.GetHeader("Accept-Language")
-		localizer = i18n.NewLocalizer(bundle, accept)
-		c.Set("localizer", localizer)
+		c.Set("localizer", i18n.NewLocalizer(bundle, accept))
 		c.Next()
 	})
 
@@ -435,9 +435,9 @@ func (s *Server) startTask() {
 			logger.Warning("Add NewStatsNotifyJob error", err)
 			return
 		}
-		} else if entry != 0 {
-			s.cron.Remove(entry)
-		}
+	} else if entry != 0 {
+		s.cron.Remove(entry)
+	}
 }
 
 func (s *Server) Start() (err error) {

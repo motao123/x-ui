@@ -84,7 +84,7 @@
 
 
     <template v-if="dbInbound.hasStream">
-        {{template "inboundInfoStream"}}
+        {{template "inboundInfoStream" .}}
     </template>
 </div>
 {{end}}
@@ -94,7 +94,7 @@
     Vue.component('inbound-info', {
         delimiters: ['[[', ']]'],
         props: ["dbInbound", "inbound"],
-        template: `{{template "component/inboundInfoComponent"}}`,
+        template: `{{template "component/inboundInfoComponent" .}}`,
         methods: {
             protocolName(p) { return ProtocolNames[p] || p; },
             protocolColor(p) { return ProtocolColors[p] || '#1890ff'; },

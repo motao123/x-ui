@@ -1,9 +1,9 @@
 {{define "inboundModal"}}
 <a-modal id="inbound-modal" v-model="inModal.visible" :title="inModal.title" @ok="inModal.ok"
          :confirm-loading="inModal.confirmLoading" :closable="true" :mask-closable="false"
-         :ok-text="inModal.okText" cancel-text='{{ i18n "close" }}'
+         :ok-text="inModal.okText" cancel-text='{{ i18n .localizer "close" }}'
          width="700px" :body-style="{ maxHeight: '75vh', overflowY: 'auto' }">
-    {{template "form/inbound"}}
+    {{template "form/inbound" .}}
 </a-modal>
 <script nonce="{{ .csp_nonce }}">
 

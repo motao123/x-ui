@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+{{template "head" .}}
+<style>
+    @media (min-width: 769px) {
+        .ant-layout-content {
+            margin: 24px 16px;
+        }
+    }
+    .log-toolbar {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 16px;
+    }
+    .log-meta {
+        color: rgba(0, 0, 0, 0.45);
+        margin-bottom: 12px;
+    }
+    .log-content {
+        min-height: 520px;
+        font-family: Consolas, Monaco, monospace;
+        white-space: pre-wrap;
+        word-break: break-all;
+    }
+</style>
+<body>
+<a-layout id="app" v-cloak>
+    {{ template "commonSider" . }}
+    <a-layout id="content-layout">
+        <a-layout-content>
+            <a-spin :spinning="spinning" :delay="200" tip="加载中"/>
+            <transition name="list" appear>
+                <a-card title="面板日志">
+                    <div class="log-toolbar">
+                        <a-select v-model="limit" style="width: 130px" @change="refresh">
+                            <a-select-option :value="64 * 1024">最近 64 KB</a-select-option>
+                            <a-select-option :value="256 * 1024">最近 256 KB</a-select-option>
+                            <a-select-option :value="1024 * 1024">最近 1 MB</a-select-option>
+                        </a-select>
+                        <a-button type="primary" icon="reload" @click="refresh">刷新</a-button>
+                        <a-button icon="download" :disabled="!log.enabled || !log.content" @click="download">下载当前内容</a-button>
+                    </div>
+
+                    <a-alert v-if="!log.enabled" type="info" show-icon
+                             message="未启用面板文件日志"
+                             description="请设置 XUI_LOG_FILE 环境变量并重启面板后再查看日志。"/>
+                    <template v-else>
+                        <a-alert v-if="log.truncated" type="warning" show-icon style="margin-bottom: 12px"
+                                 message="日志内容已截断"
+                                 :description="`当前只显示 ${sizeFormat(log.offset)} 之后的 ${sizeFormat(log.size - log.offset)} 内容。`"/>
+                        <div class="log-meta">
+                            文件：[[ log.fileName ]] | 大小：[[ sizeFormat(log.size) ]] | 更新时间：[[ formatTime(log.updatedAt) ]]
+                        </div>
+                        <a-input class="log-content" type="textarea" :rows="28" read-only v-model="log.content"></a-input>
+                    </template>
+                </a-card>
+            </transition>
+        </a-layout-content>
+    </a-layout>
+</a-layout>
+{{template "js" .}}
+<script nonce="{{ .csp_nonce }}">
+    const app = new Vue({
+        delimiters: ['[[', ']]'],
+        el: '#app',
+        data: {
+            siderDrawer,
+            spinning: false,
+            limit: 64 * 1024,
+            log: {
+                enabled: true,
+                fileName: '',
+                size: 0,
+                offset: 0,
+                limit: 0,
+                truncated: false,
+                content: '',
+                updatedAt: 0,
+            },
+        },
+        methods: {
+            async refresh() {
+                this.spinning = true;
+                const msg = await HttpUtil.post('/server/logs/tail', { limit: this.limit });
+                this.spinning = false;
+                if (msg.success) {
+                    this.log = Object.assign({}, this.log, msg.obj || { enabled: false });
+                    this.$nextTick(() => {
+                        const textarea = document.querySelector('.log-content textarea');
+                        if (textarea) textarea.scrollTop = textarea.scrollHeight;
+                    });
+                }
+            },
+            async download() {
+                const msg = await HttpUtil.post('/server/logs/download', { limit: 1024 * 1024 });
+                if (!msg.success || !msg.obj || !msg.obj.enabled) return;
+                this.downloadText(msg.obj.fileName || 'x-ui.log', msg.obj.content || '');
+            },
+            downloadText(fileName, content) {
+                const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = fileName;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+            },
+            sizeFormat,
+            formatTime(timestamp) {
+                if (!timestamp) return '-';
+                return moment(timestamp * 1000).format('YYYY-MM-DD HH:mm:ss');
+            },
+        },
+        mounted() {
+            this.refresh();
+        },
+    });
+</script>
+</body>
+</html>

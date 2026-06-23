@@ -5,6 +5,7 @@ import (
 	"errors"
 	"sync"
 	"x-ui/logger"
+	"x-ui/web/service/configbuilder"
 	"x-ui/xray"
 
 	"go.uber.org/atomic"
@@ -16,8 +17,9 @@ var isNeedXrayRestart atomic.Bool
 var result string
 
 type XrayService struct {
-	inboundService InboundService
-	settingService SettingService
+	inboundService   InboundService
+	proxyUserService ProxyUserService
+	settingService   SettingService
 }
 
 func (s *XrayService) IsXrayRunning() bool {
@@ -80,7 +82,11 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		if !inbound.Enable {
 			continue
 		}
-		inboundConfig := inbound.GenXrayInboundConfig()
+		users, err := s.proxyUserService.GetUsersForInbound(inbound.Id)
+		if err != nil {
+			return nil, err
+		}
+		inboundConfig := configbuilder.BuildInboundConfigWithUsers(inbound, users)
 		xrayConfig.InboundConfigs = append(xrayConfig.InboundConfigs, *inboundConfig)
 	}
 	return xrayConfig, nil

@@ -229,6 +229,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	g := engine.Group(basePath)
 
 	s.index = controller.NewIndexController(g)
+	controller.NewSubscriptionController(g)
 	s.server = controller.NewServerController(g)
 	s.xui = controller.NewXUIController(g)
 

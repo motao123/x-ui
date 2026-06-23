@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+{{template "head" .}}
+<style>
+    @media (min-width: 769px) {
+        .ant-layout-content { margin: 24px 16px; }
+    }
+    .toolbar { margin-bottom: 16px; display: flex; gap: 8px; flex-wrap: wrap; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
+    .ant-table .ant-btn { margin-right: 4px; }
+</style>
+<body>
+<a-layout id="app" v-cloak>
+    {{ template "commonSider" . }}
+    <a-layout id="content-layout">
+        <a-layout-content>
+            <a-card title="代理用户">
+                <div class="toolbar">
+                    <a-button type="primary" icon="plus" @click="openUserModal()">新增代理用户</a-button>
+                    <a-button icon="reload" @click="loadAll">刷新</a-button>
+                </div>
+                <a-table :columns="columns" :data-source="users" :row-key="record => record.id" :pagination="false" size="middle">
+                    <template slot="enable" slot-scope="text, record">
+                        <a-tag :color="record.enable ? 'green' : 'red'">[[ record.enable ? '启用' : '禁用' ]]</a-tag>
+                    </template>
+                    <template slot="traffic" slot-scope="text, record">
+                        [[ sizeFormat(record.up) ]] / [[ sizeFormat(record.down) ]]
+                        <span v-if="record.total > 0"> / [[ sizeFormat(record.total) ]]</span>
+                    </template>
+                    <template slot="expiry" slot-scope="text, record">
+                        [[ record.expiryTime > 0 ? moment(record.expiryTime).format('YYYY-MM-DD HH:mm:ss') : '永不过期' ]]
+                    </template>
+                    <template slot="sub" slot-scope="text, record">
+                        <a-input class="mono" size="small" read-only :value="subscriptionUrl(record)" />
+                    </template>
+                    <template slot="action" slot-scope="text, record">
+                        <span>
+                            <a-button size="small" @click="openUserModal(record)">编辑</a-button>
+                            <a-button size="small" @click="copySub(record)">复制订阅</a-button>
+                            <a-button size="small" @click="rotateToken(record)">重置令牌</a-button>
+                            <a-button size="small" @click="resetTraffic(record)">清流量</a-button>
+                            <a-button size="small" type="danger" @click="deleteUser(record)">删除</a-button>
+                        </span>
+                    </template>
+                </a-table>
+            </a-card>
+        </a-layout-content>
+    </a-layout>
+
+    <a-modal v-model="modal.visible" :title="modal.user.id ? '编辑代理用户' : '新增代理用户'" @ok="saveUser" :confirm-loading="modal.loading" ok-text="保存" cancel-text="取消">
+        <a-form layout="vertical">
+            <a-form-item label="名称">
+                <a-input v-model.trim="modal.user.name" placeholder="例如 user-001" />
+            </a-form-item>
+            <a-form-item label="状态">
+                <a-switch v-model="modal.user.enable" checked-children="启用" un-checked-children="禁用" />
+            </a-form-item>
+            <a-form-item label="UUID">
+                <a-input v-model.trim="modal.user.uuid" />
+            </a-form-item>
+            <a-form-item label="密码 / Trojan / Shadowsocks 凭据">
+                <a-input v-model.trim="modal.user.password" />
+            </a-form-item>
+            <a-form-item label="总流量限制 GB（0 为不限）">
+                <a-input-number v-model="modal.totalGB" :min="0" style="width: 160px" />
+            </a-form-item>
+            <a-form-item label="过期时间">
+                <a-date-picker v-model="modal.expiry" show-time style="width: 220px" placeholder="留空为永不过期" />
+            </a-form-item>
+            <a-form-item label="绑定入站">
+                <a-select mode="multiple" v-model="modal.user.inboundIds" style="width: 100%" placeholder="选择要出现在订阅中的入站">
+                    <a-select-option v-for="inbound in inbounds" :key="inbound.id" :value="inbound.id">
+                        [[ inbound.remark || inbound.tag ]] ([[ inbound.protocol ]] : [[ inbound.port ]])
+                    </a-select-option>
+                </a-select>
+            </a-form-item>
+        </a-form>
+    </a-modal>
+</a-layout>
+{{template "js" .}}
+<script nonce="{{ .csp_nonce }}">
+    const app = new Vue({
+        delimiters: ['[[', ']]'],
+        el: '#app',
+        data: {
+            siderDrawer,
+            users: [],
+            inbounds: [],
+            modal: {
+                visible: false,
+                loading: false,
+                totalGB: 0,
+                expiry: null,
+                user: {},
+            },
+            columns: [
+                { title: '名称', dataIndex: 'name' },
+                { title: '状态', scopedSlots: { customRender: 'enable' } },
+                { title: '流量', scopedSlots: { customRender: 'traffic' } },
+                { title: '过期', scopedSlots: { customRender: 'expiry' } },
+                { title: '订阅链接', scopedSlots: { customRender: 'sub' } },
+                { title: '操作', scopedSlots: { customRender: 'action' }, width: 360 },
+            ],
+        },
+        methods: {
+            subscriptionUrl(user) {
+                return `${location.origin}${basePath}sub/${user.token}`;
+            },
+            async loadAll() {
+                const [usersMsg, inboundsMsg] = await Promise.all([
+                    HttpUtil.post('/xui/proxy-user/list'),
+                    HttpUtil.post('/xui/inbound/list'),
+                ]);
+                if (usersMsg.success) this.users = usersMsg.obj || [];
+                if (inboundsMsg.success) this.inbounds = inboundsMsg.obj || [];
+            },
+            openUserModal(user) {
+                const data = user ? ObjectUtil.clone(user) : { id: 0, name: '', enable: true, token: '', uuid: '', password: '', total: 0, expiryTime: 0, inboundIds: [] };
+                this.modal.user = data;
+                this.modal.totalGB = data.total ? toFixed(data.total / ONE_GB, 2) : 0;
+                this.modal.expiry = data.expiryTime > 0 ? moment(data.expiryTime) : null;
+                this.modal.visible = true;
+            },
+            async saveUser() {
+                const user = ObjectUtil.clone(this.modal.user);
+                user.total = Math.round((this.modal.totalGB || 0) * ONE_GB);
+                user.expiryTime = this.modal.expiry ? this.modal.expiry.valueOf() : 0;
+                this.modal.loading = true;
+                const msg = await HttpUtil.post('/xui/proxy-user/save', user);
+                this.modal.loading = false;
+                if (msg.success) {
+                    this.modal.visible = false;
+                    await this.loadAll();
+                }
+            },
+            copySub(user) {
+                const text = this.subscriptionUrl(user);
+                if (navigator.clipboard && window.isSecureContext) {
+                    navigator.clipboard.writeText(text).then(() => this.$message.success('已复制订阅链接'));
+                    return;
+                }
+                const input = document.createElement('input');
+                input.value = text;
+                document.body.appendChild(input);
+                input.select();
+                document.execCommand('copy');
+                document.body.removeChild(input);
+                this.$message.success('已复制订阅链接');
+            },
+            rotateToken(user) {
+                this.$confirm({ title: '重置订阅令牌', content: '旧订阅链接将失效，确定继续？', onOk: async () => { const msg = await HttpUtil.post(`/xui/proxy-user/rotateToken/${user.id}`); if (msg.success) await this.loadAll(); } });
+            },
+            resetTraffic(user) {
+                this.$confirm({ title: '清空流量', content: '确定清空该代理用户流量？', onOk: async () => { const msg = await HttpUtil.post(`/xui/proxy-user/resetTraffic/${user.id}`); if (msg.success) await this.loadAll(); } });
+            },
+            deleteUser(user) {
+                this.$confirm({ title: '删除代理用户', content: '确定删除该代理用户？', okType: 'danger', onOk: async () => { const msg = await HttpUtil.post(`/xui/proxy-user/del/${user.id}`); if (msg.success) await this.loadAll(); } });
+            },
+        },
+        mounted() {
+            this.loadAll();
+        },
+    });
+</script>
+</body>
+</html>

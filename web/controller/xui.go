@@ -7,9 +7,10 @@ import (
 type XUIController struct {
 	BaseController
 
-	inboundController *InboundController
-	settingController *SettingController
-	detectController  *DetectController
+	inboundController   *InboundController
+	proxyUserController *ProxyUserController
+	settingController   *SettingController
+	detectController    *DetectController
 }
 
 func NewXUIController(g *gin.RouterGroup) *XUIController {
@@ -24,11 +25,13 @@ func (a *XUIController) initRouter(g *gin.RouterGroup) {
 
 	g.GET("/", a.index)
 	g.GET("/inbounds", a.inbounds)
+	g.GET("/proxy-users", a.proxyUsers)
 	g.GET("/detect", a.detect)
 	g.GET("/logs", a.logs)
 	g.GET("/setting", a.setting)
 
 	a.inboundController = NewInboundController(g)
+	a.proxyUserController = NewProxyUserController(g)
 	a.settingController = NewSettingController(g)
 	a.detectController = NewDetectController(g)
 }
@@ -40,6 +43,10 @@ func (a *XUIController) index(c *gin.Context) {
 
 func (a *XUIController) inbounds(c *gin.Context) {
 	html(c, "inbounds.html", "入站列表", nil)
+}
+
+func (a *XUIController) proxyUsers(c *gin.Context) {
+	html(c, "proxy_users.html", "代理用户", nil)
 }
 
 func (a *XUIController) detect(c *gin.Context) {

@@ -5,6 +5,7 @@ import (
 	"path"
 	"time"
 	"x-ui/config"
+	"x-ui/database/migration"
 	"x-ui/database/model"
 	"x-ui/logger"
 	"x-ui/util/random"
@@ -76,6 +77,10 @@ func initTrafficHistory() error {
 	return db.Where("record_at < ?", cutoff).Delete(&model.TrafficHistory{}).Error
 }
 
+func initProxySubscription() error {
+	return db.AutoMigrate(&model.ProxyUser{}, &model.ProxyUserInbound{}, &model.SubscriptionAccess{})
+}
+
 func InitDB(dbPath string) error {
 	dir := path.Dir(dbPath)
 	err := os.MkdirAll(dir, 0700)
@@ -113,6 +118,13 @@ func InitDB(dbPath string) error {
 	}
 	err = initTrafficHistory()
 	if err != nil {
+		return err
+	}
+	err = initProxySubscription()
+	if err != nil {
+		return err
+	}
+	if err := migration.Run(db, nil); err != nil {
 		return err
 	}
 

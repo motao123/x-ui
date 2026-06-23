@@ -2,6 +2,7 @@ package job
 
 import (
 	"x-ui/logger"
+	"x-ui/util/common"
 	"x-ui/web/service"
 )
 
@@ -15,6 +16,7 @@ func NewXrayTrafficJob() *XrayTrafficJob {
 }
 
 func (j *XrayTrafficJob) Run() {
+	defer common.Recover("XrayTrafficJob")
 	if !j.xrayService.IsXrayRunning() {
 		return
 	}

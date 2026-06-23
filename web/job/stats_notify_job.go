@@ -54,12 +54,13 @@ func (j *StatsNotifyJob) SendMsgToTgbot(msg string) {
 	info := tgbotapi.NewMessage(int64(tgBotid), msg)
 	//msg.ReplyToMessageID = int(tgBotid)
 	if _, err := bot.Send(info); err != nil {
-			logger.Warning("send tg message failed:", err)
-		}
+		logger.Warning("send tg message failed:", err)
+	}
 }
 
-//Here run is a interface method of Job interface
+// Here run is a interface method of Job interface
 func (j *StatsNotifyJob) Run() {
+	defer common.Recover("StatsNotifyJob")
 	if !j.xrayService.IsXrayRunning() {
 		return
 	}

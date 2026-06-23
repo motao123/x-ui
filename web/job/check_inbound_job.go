@@ -2,6 +2,7 @@ package job
 
 import (
 	"x-ui/logger"
+	"x-ui/util/common"
 	"x-ui/web/service"
 )
 
@@ -15,6 +16,7 @@ func NewCheckInboundJob() *CheckInboundJob {
 }
 
 func (j *CheckInboundJob) Run() {
+	defer common.Recover("CheckInboundJob")
 	count, err := j.inboundService.DisableInvalidInbounds()
 	if err != nil {
 		logger.Warning("disable invalid inbounds err:", err)

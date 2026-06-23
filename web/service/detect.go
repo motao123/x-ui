@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -202,8 +203,36 @@ func selectDetectPlatforms(ids []string) []detectPlatform {
 	return selected
 }
 
-func detectGet(ctx context.Context, url string) ([]byte, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+// detectHostAllowlist 是检测页允许请求的外部域名白名单。
+// 仅这些 host 才允许被 detectGet/detectClientGet 访问，防止 SSRF。
+var detectHostAllowlist = map[string]bool{
+	"api.ipapi.is":           true,
+	"ip-api.com":             true,
+	"my.ippure.com":          true,
+	"gspe1-ssl.ls.apple.com": true,
+	"www.bing.com":           true,
+	"play.google.com":        true,
+	"chat.openai.com":        true,
+	"www.youtube.com":        true,
+}
+
+func assertDetectHostAllowed(rawURL string) error {
+	parsed, err := url.Parse(rawURL)
+	if err != nil {
+		return fmt.Errorf("invalid url: %w", err)
+	}
+	host := strings.ToLower(parsed.Hostname())
+	if host == "" || !detectHostAllowlist[host] {
+		return fmt.Errorf("host not allowed: %s", host)
+	}
+	return nil
+}
+
+func detectGet(ctx context.Context, rawURL string) ([]byte, error) {
+	if err := assertDetectHostAllowed(rawURL); err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -401,8 +430,11 @@ func checkDetectYouTube(ctx context.Context, client *http.Client) DetectUnlockRe
 	return DetectUnlockResult{Status: "unknown", Region: region, Hint: "YouTube 可访问，但未识别 Premium 状态"}
 }
 
-func detectClientGet(ctx context.Context, client *http.Client, url string) ([]byte, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+func detectClientGet(ctx context.Context, client *http.Client, rawURL string) ([]byte, error) {
+	if err := assertDetectHostAllowed(rawURL); err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)
 	if err != nil {
 		return nil, err
 	}

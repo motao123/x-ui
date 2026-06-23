@@ -27,20 +27,50 @@ func GetBinaryName() string {
 	return fmt.Sprintf("xray-%s-%s", runtime.GOOS, runtime.GOARCH)
 }
 
+// resolveBaseDir 返回 x-ui 可执行文件所在目录的绝对路径，
+// 避免 cwd 被篡改后 bin/ 路径失效。
+func resolveBaseDir() string {
+	exe, err := os.Executable()
+	if err != nil {
+		return ""
+	}
+	resolved, err := filepath.EvalSymlinks(exe)
+	if err != nil {
+		resolved = exe
+	}
+	return filepath.Dir(resolved)
+}
+
 func GetBinaryPath() string {
-	return "bin/" + GetBinaryName()
+	base := resolveBaseDir()
+	if base == "" {
+		return "bin/" + GetBinaryName()
+	}
+	return filepath.Join(base, "bin", GetBinaryName())
 }
 
 func GetConfigPath() string {
-	return "bin/config.json"
+	base := resolveBaseDir()
+	if base == "" {
+		return "bin/config.json"
+	}
+	return filepath.Join(base, "bin", "config.json")
 }
 
 func GetGeositePath() string {
-	return "bin/geosite.dat"
+	base := resolveBaseDir()
+	if base == "" {
+		return "bin/geosite.dat"
+	}
+	return filepath.Join(base, "bin", "geosite.dat")
 }
 
 func GetGeoipPath() string {
-	return "bin/geoip.dat"
+	base := resolveBaseDir()
+	if base == "" {
+		return "bin/geoip.dat"
+	}
+	return filepath.Join(base, "bin", "geoip.dat")
 }
 
 func stopProcess(p *Process) {

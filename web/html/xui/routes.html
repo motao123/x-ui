@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+{{template "head" .}}
+<style>
+    @media (min-width: 769px) { .ant-layout-content { margin: 24px 16px; } }
+    .toolbar { margin-bottom: 16px; display: flex; gap: 8px; flex-wrap: wrap; }
+    .hint { color: rgba(0,0,0,0.45); font-size: 12px; }
+</style>
+<body>
+<a-layout id="app" v-cloak>
+    {{ template "commonSider" . }}
+    <a-layout id="content-layout">
+        <a-layout-content>
+            <a-card title="路由规则">
+                <div class="toolbar">
+                    <a-button type="primary" icon="plus" @click="openModal()">新增规则</a-button>
+                    <a-button icon="reload" @click="loadRules">刷新</a-button>
+                    <a-button icon="check" @click="applyRules">应用规则</a-button>
+                </div>
+                <a-alert type="info" show-icon style="margin-bottom: 16px" message="规则会追加到当前 Xray 模板 routing.rules 后面，应用前会进行 Xray 配置校验。多个值用英文逗号分隔。" />
+                <a-table :columns="columns" :data-source="rules" :row-key="record => record.id" :pagination="false" size="middle">
+                    <template slot="enable" slot-scope="text, record">
+                        <a-tag :color="record.enable ? 'green' : 'red'">[[ record.enable ? '启用' : '禁用' ]]</a-tag>
+                    </template>
+                    <template slot="match" slot-scope="text, record">
+                        <div v-if="record.domain">domain: [[ record.domain ]]</div>
+                        <div v-if="record.ip">ip: [[ record.ip ]]</div>
+                        <div v-if="record.protocol">protocol: [[ record.protocol ]]</div>
+                        <div v-if="record.inboundTag">inboundTag: [[ record.inboundTag ]]</div>
+                    </template>
+                    <template slot="action" slot-scope="text, record">
+                        <a-button size="small" @click="openModal(record)">编辑</a-button>
+                        <a-button size="small" type="danger" @click="deleteRule(record)">删除</a-button>
+                    </template>
+                </a-table>
+            </a-card>
+        </a-layout-content>
+    </a-layout>
+
+    <a-modal v-model="modal.visible" :title="modal.form.id ? '编辑路由规则' : '新增路由规则'" @ok="saveRule" :confirm-loading="modal.loading" ok-text="保存" cancel-text="取消" width="720px">
+        <a-form layout="vertical">
+            <a-form-item label="名称"><a-input v-model.trim="modal.form.name" /></a-form-item>
+            <a-form-item label="启用"><a-switch v-model="modal.form.enable" checked-children="启用" un-checked-children="禁用" /></a-form-item>
+            <a-form-item label="排序"><a-input-number v-model="modal.form.sort" style="width: 160px" /></a-form-item>
+            <a-form-item label="Domain 匹配"><a-input v-model.trim="modal.form.domain" placeholder="geosite:google,domain:example.com" /><div class="hint">可填 geosite、domain、full、regexp 等 Xray 支持的 domain 条件</div></a-form-item>
+            <a-form-item label="IP 匹配"><a-input v-model.trim="modal.form.ip" placeholder="geoip:private,1.1.1.1/32" /></a-form-item>
+            <a-form-item label="Protocol 匹配"><a-input v-model.trim="modal.form.protocol" placeholder="bittorrent" /></a-form-item>
+            <a-form-item label="InboundTag 匹配"><a-input v-model.trim="modal.form.inboundTag" placeholder="inbound-443" /></a-form-item>
+            <a-form-item label="OutboundTag"><a-input v-model.trim="modal.form.outboundTag" placeholder="blocked" /></a-form-item>
+        </a-form>
+    </a-modal>
+</a-layout>
+{{template "js" .}}
+<script nonce="{{ .csp_nonce }}">
+    const app = new Vue({
+        delimiters: ['[[', ']]'],
+        el: '#app',
+        data: {
+            siderDrawer,
+            rules: [],
+            modal: { visible: false, loading: false, form: {} },
+            columns: [
+                { title: '排序', dataIndex: 'sort', width: 80 },
+                { title: '状态', scopedSlots: { customRender: 'enable' }, width: 80 },
+                { title: '名称', dataIndex: 'name' },
+                { title: '匹配条件', scopedSlots: { customRender: 'match' } },
+                { title: '出站', dataIndex: 'outboundTag', width: 120 },
+                { title: '操作', scopedSlots: { customRender: 'action' }, width: 160 },
+            ],
+        },
+        methods: {
+            defaultRule() { return { id: 0, enable: true, name: '', domain: '', ip: '', protocol: '', inboundTag: '', outboundTag: 'blocked', sort: 100 }; },
+            async loadRules() {
+                const msg = await HttpUtil.post('/xui/route-rule/list');
+                if (msg.success) this.rules = msg.obj || [];
+            },
+            openModal(rule) {
+                this.modal.form = rule ? ObjectUtil.clone(rule) : this.defaultRule();
+                this.modal.visible = true;
+            },
+            async saveRule() {
+                this.modal.loading = true;
+                const msg = await HttpUtil.post('/xui/route-rule/save', this.modal.form);
+                this.modal.loading = false;
+                if (msg.success) {
+                    this.modal.visible = false;
+                    await this.loadRules();
+                }
+            },
+            deleteRule(rule) {
+                this.$confirm({ title: '删除路由规则', content: '确定删除该规则？', okType: 'danger', onOk: async () => { const msg = await HttpUtil.post(`/xui/route-rule/del/${rule.id}`); if (msg.success) await this.loadRules(); } });
+            },
+            applyRules() {
+                this.$confirm({ title: '应用路由规则', content: '将校验并重启 Xray，确定继续？', onOk: async () => { await HttpUtil.post('/xui/route-rule/apply'); } });
+            },
+        },
+        mounted() { this.loadRules(); },
+    });
+</script>
+</body>
+</html>

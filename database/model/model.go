@@ -110,3 +110,19 @@ type Certificate struct {
 }
 
 func (Certificate) TableName() string { return "certificates" }
+
+type RouteRule struct {
+	Id          int    `json:"id" form:"id" gorm:"primaryKey;autoIncrement"`
+	Enable      bool   `json:"enable" form:"enable"`
+	Name        string `json:"name" form:"name" gorm:"not null"`
+	Domain      string `json:"domain" form:"domain"`
+	Ip          string `json:"ip" form:"ip"`
+	Protocol    string `json:"protocol" form:"protocol"`
+	InboundTag  string `json:"inboundTag" form:"inboundTag"`
+	OutboundTag string `json:"outboundTag" form:"outboundTag" gorm:"not null"`
+	Sort        int    `json:"sort" form:"sort" gorm:"index"`
+	CreatedAt   int64  `json:"createdAt"`
+	UpdatedAt   int64  `json:"updatedAt"`
+}
+
+func (RouteRule) TableName() string { return "route_rules" }

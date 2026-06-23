@@ -19,6 +19,7 @@ var result string
 type XrayService struct {
 	inboundService   InboundService
 	proxyUserService ProxyUserService
+	routeRuleService RouteRuleService
 	settingService   SettingService
 }
 
@@ -89,6 +90,11 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		inboundConfig := configbuilder.BuildInboundConfigWithUsers(inbound, users)
 		xrayConfig.InboundConfigs = append(xrayConfig.InboundConfigs, *inboundConfig)
 	}
+	routing, err := s.routeRuleService.CompileRouting(xrayConfig.RouterConfig)
+	if err != nil {
+		return nil, err
+	}
+	xrayConfig.RouterConfig = routing
 	return xrayConfig, nil
 }
 

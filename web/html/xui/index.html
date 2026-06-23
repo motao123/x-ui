@@ -227,19 +227,24 @@
         </a-layout-content>
     </a-layout>
     <a-modal id="version-modal" v-model="versionModal.visible" title="切换 Xray 版本"
-             :closable="true" @ok="() => versionModal.visible = false"
-             ok-text="确定" cancel-text="取消">
+             :closable="true" :confirm-loading="versionModal.installing" :ok-button-props="{ props: { disabled: !versionModal.selected || versionModal.selected === status.xray.version } }"
+             @ok="installSelectedXrayVersion" ok-text="安装选中版本" cancel-text="取消">
         <a-alert message="请谨慎选择，旧版本可能配置不兼容" type="warning" show-icon style="margin-bottom: 16px;" />
         <a-alert v-if="versionModal.error" :message="versionModal.error" type="error" show-icon style="margin-bottom: 16px;" />
         <div v-if="versionModal.versions.length > 0" style="font-size: 12px; color: rgba(0,0,0,0.45); margin-bottom: 8px;">
             已获取 [[ versionModal.versions.length ]] 个版本 [[ versionModal.loadedAt ? '，更新时间：' + versionModal.loadedAt : '' ]]
         </div>
         <a-empty v-if="versionModal.versions.length === 0" description="暂无可用版本，请稍后重试或检查服务器 GitHub 访问" />
+        <a-select v-if="versionModal.versions.length > 0" v-model="versionModal.selected" style="width: 100%; margin-bottom: 12px;" show-search placeholder="请选择要安装的 Xray 版本">
+            <a-select-option v-for="version in versionModal.versions" :key="version" :value="version">
+                [[ version ]][[ version === status.xray.version ? '（当前）' : '' ]]
+            </a-select-option>
+        </a-select>
         <div v-if="versionModal.versions.length > 0" class="version-list">
             <a-button v-for="version in versionModal.versions" :key="version"
                       size="small"
-                      :type="version === status.xray.version ? 'primary' : 'default'"
-                      @click="switchV2rayVersion(version)">
+                      :type="version === versionModal.selected ? 'primary' : 'default'"
+                      @click="versionModal.selected = version">
                 [[ version ]]
                 <a-icon v-if="version === status.xray.version" type="check-circle" />
             </a-button>
@@ -329,17 +334,22 @@
     const versionModal = {
         visible: false,
         versions: [],
+        selected: '',
+        installing: false,
         error: '',
         loadedAt: '',
-        show(versions, error = '') {
+        show(versions, currentVersion = '', error = '') {
             this.visible = true;
             this.versions = Array.isArray(versions) ? versions : [];
+            this.selected = this.versions.includes(currentVersion) ? currentVersion : (this.versions[0] || '');
+            this.installing = false;
             this.error = error;
             this.loadedAt = this.versions.length > 0 ? moment().format('HH:mm:ss') : '';
         },
         hide() {
             this.visible = false;
             this.error = '';
+            this.installing = false;
         },
     };
 
@@ -380,29 +390,25 @@
                 this.loading(false);
                 const versions = this.normalizeVersionList(msg);
                 if (versions.length === 0) {
-                    versionModal.show([], msg && msg.msg ? msg.msg : '获取 Xray 版本失败或版本列表为空');
+                    versionModal.show([], this.status.xray.version, msg && msg.msg ? msg.msg : '获取 Xray 版本失败或版本列表为空');
                     return;
                 }
-                versionModal.show(versions);
+                versionModal.show(versions, this.status.xray.version);
             },
-            switchV2rayVersion(version) {
-                this.$confirm({
-                    title: '切换 xray 版本',
-                    content: '是否切换 xray 版本至' + ` ${version}?`,
-                    okText: '确定',
-                    cancelText: '取消',
-                    onOk: async () => {
-                        this.loading(true, '安装中，请不要刷新此页面');
-                        const msg = await HttpUtil.post(`/server/installXray/${version}`);
-                        this.loading(false);
-                        if (msg.success) {
-                            versionModal.hide();
-                            await this.getStatus();
-                        } else {
-                            versionModal.show(versionModal.versions, msg.msg || '安装 Xray 失败');
-                        }
-                    },
-                });
+            async installSelectedXrayVersion() {
+                const version = versionModal.selected;
+                if (!version || version === this.status.xray.version) {
+                    return;
+                }
+                versionModal.installing = true;
+                const msg = await HttpUtil.post(`/server/installXray/${version}`);
+                versionModal.installing = false;
+                if (msg.success) {
+                    versionModal.hide();
+                    await this.getStatus();
+                } else {
+                    versionModal.error = msg.msg || '安装 Xray 失败';
+                }
             },
         },
         async mounted() {

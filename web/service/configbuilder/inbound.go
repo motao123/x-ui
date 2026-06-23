@@ -46,9 +46,14 @@ func injectProxyUsers(protocol model.Protocol, settingsText string, users []*mod
 	}
 	switch protocol {
 	case model.VLESS:
+		flow := firstClientString(settingsText, "flow")
 		clients := make([]interface{}, 0, len(users))
 		for _, user := range users {
-			clients = append(clients, map[string]interface{}{"id": user.UUID, "email": user.Name})
+			client := map[string]interface{}{"id": user.UUID, "email": user.Name}
+			if flow != "" {
+				client["flow"] = flow
+			}
+			clients = append(clients, client)
 		}
 		settings["clients"] = clients
 		if _, ok := settings["decryption"]; !ok {
@@ -84,6 +89,23 @@ func injectProxyUsers(protocol model.Protocol, settingsText string, users []*mod
 		return settingsText
 	}
 	return string(data)
+}
+
+func firstClientString(settingsText string, key string) string {
+	var settings map[string]interface{}
+	if err := json.Unmarshal([]byte(settingsText), &settings); err != nil {
+		return ""
+	}
+	clients, ok := settings["clients"].([]interface{})
+	if !ok || len(clients) == 0 {
+		return ""
+	}
+	client, ok := clients[0].(map[string]interface{})
+	if !ok {
+		return ""
+	}
+	value, _ := client[key].(string)
+	return value
 }
 
 func NormalizedSettings(protocol model.Protocol, settingsText string, streamSettings string) string {

@@ -2,8 +2,6 @@ package controller
 
 import (
 	"bufio"
-	"crypto/rand"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"io"
@@ -19,7 +17,6 @@ import (
 	"x-ui/web/service"
 
 	"github.com/gin-gonic/gin"
-	"golang.org/x/crypto/curve25519"
 )
 
 const (
@@ -360,25 +357,14 @@ func (a *ServerController) trafficHistory(c *gin.Context) {
 }
 
 func (a *ServerController) genX25519(c *gin.Context) {
-	var privateKey [32]byte
-	if _, err := rand.Read(privateKey[:]); err != nil {
-		jsonMsg(c, "生成密钥", err)
-		return
-	}
-	// RFC 7748: clamp private key
-	privateKey[0] &= 248
-	privateKey[31] &= 127
-	privateKey[31] |= 64
-
-	publicKey, err := curve25519.X25519(privateKey[:], curve25519.Basepoint)
+	keyPair, err := service.GenerateX25519KeyPair()
 	if err != nil {
 		jsonMsg(c, "生成密钥", err)
 		return
 	}
-
 	result := map[string]string{
-		"Private key": base64.RawURLEncoding.EncodeToString(privateKey[:]),
-		"Public key":  base64.RawURLEncoding.EncodeToString(publicKey),
+		"Private key": keyPair.PrivateKey,
+		"Public key":  keyPair.PublicKey,
 	}
 	jsonObj(c, result, nil)
 }

@@ -9,6 +9,7 @@ type XUIController struct {
 
 	inboundController   *InboundController
 	proxyUserController *ProxyUserController
+	quickNodeController *QuickNodeController
 	settingController   *SettingController
 	detectController    *DetectController
 }
@@ -32,6 +33,7 @@ func (a *XUIController) initRouter(g *gin.RouterGroup) {
 
 	a.inboundController = NewInboundController(g)
 	a.proxyUserController = NewProxyUserController(g)
+	a.quickNodeController = NewQuickNodeController(g)
 	a.settingController = NewSettingController(g)
 	a.detectController = NewDetectController(g)
 }

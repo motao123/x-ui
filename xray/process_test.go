@@ -1,11 +1,74 @@
 package xray
 
 import (
+	"context"
+	"net"
 	"os"
 	"path/filepath"
 	"runtime"
 	"testing"
+	"time"
+
+	statsservice "github.com/xtls/xray-core/app/stats/command"
+	"google.golang.org/grpc"
 )
+
+type testStatsServer struct {
+	statsservice.UnimplementedStatsServiceServer
+}
+
+func (s *testStatsServer) QueryStats(context.Context, *statsservice.QueryStatsRequest) (*statsservice.QueryStatsResponse, error) {
+	return &statsservice.QueryStatsResponse{}, nil
+}
+
+func TestWaitAPIReadyUsesStatsService(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	server := grpc.NewServer()
+	statsservice.RegisterStatsServiceServer(server, &testStatsServer{})
+	go func() {
+		_ = server.Serve(listener)
+	}()
+	t.Cleanup(func() {
+		server.Stop()
+		listener.Close()
+	})
+
+	process := newProcess(&Config{})
+	process.apiPort = listener.Addr().(*net.TCPAddr).Port
+	if err := process.waitAPIReady(time.Second); err != nil {
+		t.Fatalf("wait api ready: %v", err)
+	}
+}
+
+func TestWaitAPIReadyRejectsTCPOnlyPort(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	defer listener.Close()
+	go func() {
+		conn, err := listener.Accept()
+		if err == nil {
+			conn.Close()
+		}
+	}()
+
+	process := newProcess(&Config{})
+	process.apiPort = listener.Addr().(*net.TCPAddr).Port
+	if err := process.waitAPIReady(200 * time.Millisecond); err == nil {
+		t.Fatal("expected tcp-only port to fail stats readiness")
+	}
+}
+
+func TestWaitAPIReadyRejectsMissingPort(t *testing.T) {
+	process := newProcess(&Config{})
+	if err := process.waitAPIReady(150 * time.Millisecond); err == nil {
+		t.Fatal("expected missing api port to fail readiness")
+	}
+}
 
 func TestAtomicWriteFileWritesAndReplacesFile(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "config.json")

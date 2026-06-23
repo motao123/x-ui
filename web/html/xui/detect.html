@@ -205,7 +205,14 @@
                 const msg = await HttpUtil.post('/xui/detect/backroute');
                 this.spinningBackRoute = false;
                 if (msg.success) {
-                    this.backRoute = msg.obj || [];
+                    const rows = msg.obj || [];
+                    const dependencyError = rows.find(row => row.error);
+                    if (dependencyError) {
+                        this.backRoute = [];
+                        this.backRouteError = dependencyError.error + '（Debian/Ubuntu: apt install mtr-tiny；CentOS/RHEL: yum install mtr）';
+                        return;
+                    }
+                    this.backRoute = rows;
                     if (!this.backRoute.length) this.backRouteError = '未检测到回程路由，请确认服务器已安装 mtr';
                 } else {
                     this.backRouteError = msg.msg || '检测失败';

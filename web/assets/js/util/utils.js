@@ -13,6 +13,21 @@ class HttpUtil {
         }
     }
 
+    static _errorToMsg(error) {
+        const response = error && error.response;
+        if (response) {
+            const data = response.data;
+            if (data && typeof data === 'object') {
+                return new Msg(false, data.msg || data.message || response.statusText || `HTTP ${response.status}`);
+            }
+            if (typeof data === 'string' && data.trim() !== '') {
+                return new Msg(false, data.trim());
+            }
+            return new Msg(false, response.statusText || `HTTP ${response.status}`);
+        }
+        return new Msg(false, error && error.message ? error.message : String(error));
+    }
+
     static _respToMsg(resp) {
         const data = resp.data;
         if (data == null) {
@@ -24,7 +39,7 @@ class HttpUtil {
                 return data;
             }
         } else {
-            return new Msg(false, 'unknown data:', data);
+            return new Msg(false, `unknown data: ${data}`);
         }
     }
 
@@ -34,7 +49,7 @@ class HttpUtil {
             const resp = await axios.get(url, data, options);
             msg = this._respToMsg(resp);
         } catch (e) {
-            msg = new Msg(false, e.toString());
+            msg = this._errorToMsg(e);
         }
         this._handleMsg(msg);
         return msg;
@@ -46,7 +61,7 @@ class HttpUtil {
             const resp = await axios.post(url, data, options);
             msg = this._respToMsg(resp);
         } catch (e) {
-            msg = new Msg(false, e.toString());
+            msg = this._errorToMsg(e);
         }
         this._handleMsg(msg);
         return msg;

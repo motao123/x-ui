@@ -188,6 +188,8 @@
              :closable="true" @ok="() => versionModal.visible = false"
              ok-text="确定" cancel-text="取消">
         <a-alert message="请谨慎选择，旧版本可能配置不兼容" type="warning" show-icon style="margin-bottom: 16px;" />
+        <a-alert v-if="versionModal.error" :message="versionModal.error" type="error" show-icon style="margin-bottom: 16px;" />
+        <a-empty v-if="versionModal.versions.length === 0" description="暂无可用版本，请稍后重试或检查服务器 GitHub 访问" />
         <template v-for="version, index in versionModal.versions">
             <a-tag :color="version === status.xray.version ? '#1890ff' : (index % 2 == 0 ? 'blue' : 'green')"
                    style="margin: 5px; cursor: pointer;" @click="switchV2rayVersion(version)">
@@ -280,12 +282,15 @@
     const versionModal = {
         visible: false,
         versions: [],
-        show(versions) {
+        error: '',
+        show(versions, error = '') {
             this.visible = true;
-            this.versions = versions;
+            this.versions = Array.isArray(versions) ? versions : [];
+            this.error = error;
         },
         hide() {
             this.visible = false;
+            this.error = '';
         },
     };
 
@@ -315,9 +320,10 @@
             },
             async openSelectV2rayVersion() {
                 this.loading(true);
-                const msg = await HttpUtil.post('server/getXrayVersion');
+                const msg = await HttpUtil.post('/server/getXrayVersion');
                 this.loading(false);
                 if (!msg.success) {
+                    versionModal.show([], msg.msg || '获取 Xray 版本失败');
                     return;
                 }
                 versionModal.show(msg.obj);
@@ -329,10 +335,15 @@
                     okText: '确定',
                     cancelText: '取消',
                     onOk: async () => {
-                        versionModal.hide();
                         this.loading(true, '安装中，请不要刷新此页面');
-                        await HttpUtil.post(`/server/installXray/${version}`);
+                        const msg = await HttpUtil.post(`/server/installXray/${version}`);
                         this.loading(false);
+                        if (msg.success) {
+                            versionModal.hide();
+                            await this.getStatus();
+                        } else {
+                            versionModal.show(versionModal.versions, msg.msg || '安装 Xray 失败');
+                        }
                     },
                 });
             },

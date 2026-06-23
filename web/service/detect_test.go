@@ -1,6 +1,9 @@
 package service
 
-import "testing"
+import (
+	"os"
+	"testing"
+)
 
 func TestParseIPAPICom(t *testing.T) {
 	result, err := parseIPAPICom([]byte(`{
@@ -88,6 +91,38 @@ func TestDetectCaches(t *testing.T) {
 	unlock, ok := getCachedUnlockResult("apple")
 	if !ok || unlock.Status != "unlocked" {
 		t.Fatalf("expected unlock cache hit, got %#v ok=%v", unlock, ok)
+	}
+}
+
+func TestDetectLineClassifiers(t *testing.T) {
+	if got := detectLine("telecom", []string{"59.43.1.1", "59.43.2.2"}); got != "CN2 GIA" {
+		t.Fatalf("unexpected telecom line: %q", got)
+	}
+	if got := detectLine("unicom", []string{"218.105.1.1"}); got != "9929" {
+		t.Fatalf("unexpected unicom line: %q", got)
+	}
+	if got := detectLine("mobile", []string{"223.120.1.1"}); got != "CMIN2" {
+		t.Fatalf("unexpected mobile line: %q", got)
+	}
+}
+
+func TestDetectBackRouteMissingMTRReturnsStructuredError(t *testing.T) {
+	oldPath := os.Getenv("PATH")
+	t.Setenv("PATH", "")
+	t.Cleanup(func() { _ = os.Setenv("PATH", oldPath) })
+
+	result := (&DetectService{}).DetectBackRoute()
+	if len(result) != 1 || result[0].Error == "" {
+		t.Fatalf("expected dependency error, got %#v", result)
+	}
+}
+
+func TestIsPublicIP(t *testing.T) {
+	if isPublicIP("127.0.0.1") || isPublicIP("10.0.0.1") {
+		t.Fatal("private addresses should not be public")
+	}
+	if !isPublicIP("8.8.8.8") {
+		t.Fatal("8.8.8.8 should be public")
 	}
 }
 

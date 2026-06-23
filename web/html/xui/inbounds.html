@@ -116,12 +116,12 @@
                             <template slot="settings" slot-scope="text, dbInbound">
                                 <a-button type="link" size="small" @click="showInfo(dbInbound)">详情</a-button>
                             </template>
-                            <template slot="stream" slot-scope="text, dbInbound, index">
-                                <template v-if="dbInbound.hasStream">
-                                    <a-tag color="green" class="inbound-stream-tag">[[ networkName(inbounds[index].stream.network) ]]</a-tag>
-                                    <a-tag v-if="inbounds[index].stream.isTls" color="blue" class="inbound-stream-tag">TLS</a-tag>
-                                    <a-tag v-if="inbounds[index].stream.isXTls" color="purple" class="inbound-stream-tag">XTLS</a-tag>
-                                    <a-tag v-if="inbounds[index].stream.isReality" color="cyan" class="inbound-stream-tag">Reality</a-tag>
+                            <template slot="stream" slot-scope="text, dbInbound">
+                                <template v-if="inboundById(dbInbound.id) && inboundById(dbInbound.id).hasStream">
+                                    <a-tag color="green" class="inbound-stream-tag">[[ networkName(inboundById(dbInbound.id).stream.network) ]]</a-tag>
+                                    <a-tag v-if="inboundById(dbInbound.id).stream.isTls" color="blue" class="inbound-stream-tag">TLS</a-tag>
+                                    <a-tag v-if="inboundById(dbInbound.id).stream.isXTls" color="purple" class="inbound-stream-tag">XTLS</a-tag>
+                                    <a-tag v-if="inboundById(dbInbound.id).stream.isReality" color="cyan" class="inbound-stream-tag">Reality</a-tag>
                                 </template>
                                 <span v-else style="color:#bbb;">-</span>
                             </template>
@@ -207,6 +207,7 @@
             siderDrawer,
             spinning: false,
             inbounds: [],
+            inboundMap: {},
             dbInbounds: [],
             searchKey: '',
             searchedInbounds: [],
@@ -218,6 +219,7 @@
             protocolName(p) { return ProtocolNames[p] || p; },
             protocolColor(p) { return ProtocolColors[p] || '#1890ff'; },
             networkName(n) { return NetworkNames[n] || n; },
+            inboundById(id) { return this.inboundMap[id]; },
             async getDBInbounds() {
                 this.loading();
                 const msg = await HttpUtil.post('/xui/inbound/list');
@@ -230,9 +232,12 @@
             setInbounds(dbInbounds) {
                 this.inbounds.splice(0);
                 this.dbInbounds.splice(0);
+                this.inboundMap = {};
                 for (const inbound of dbInbounds) {
                     const dbInbound = new DBInbound(inbound);
-                    this.inbounds.push(dbInbound.toInbound());
+                    const streamInbound = dbInbound.toInbound();
+                    this.inbounds.push(streamInbound);
+                    this.inboundMap[dbInbound.id] = streamInbound;
                     this.dbInbounds.push(dbInbound);
                 }
                 this.searchInbounds(this.searchKey);

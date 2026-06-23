@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -212,7 +211,7 @@ func (p *process) Start() (err error) {
 
 	go func() {
 		defer func() {
-			common.Recover("")
+			common.Recover("read xray stdout")
 			stdReader.Close()
 		}()
 		reader := bufio.NewReaderSize(stdReader, 8192)
@@ -230,7 +229,7 @@ func (p *process) Start() (err error) {
 
 	go func() {
 		defer func() {
-			common.Recover("")
+			common.Recover("read xray stderr")
 			errReader.Close()
 		}()
 		reader := bufio.NewReaderSize(errReader, 8192)
@@ -263,37 +262,54 @@ func (p *process) Start() (err error) {
 	case <-time.After(500 * time.Millisecond):
 	}
 
-	// 就绪探针：尝试连接 gRPC API 端口，确认 xray 已真正就绪，
-	// 避免慢启动机器上 500ms sleep 误判成功。
+	// 就绪探针：确认 gRPC stats API 已可用，避免慢启动机器上 500ms sleep 误判成功。
+	p.refreshAPIPort()
 	if err := p.waitAPIReady(3 * time.Second); err != nil {
 		return common.NewErrorf("xray 启动后 API 未就绪: %v", err)
 	}
 
 	p.refreshVersion()
-	p.refreshAPIPort()
 
 	return nil
 }
 
-// waitAPIReady 轮询 dial gRPC API 端口，直到连接成功或超时。
+// waitAPIReady 轮询 gRPC stats API，直到 QueryStats 成功或超时。
 func (p *process) waitAPIReady(timeout time.Duration) error {
 	deadline := time.Now().Add(timeout)
+	var lastErr error
 	for time.Now().Before(deadline) {
 		if p.apiPort == 0 {
 			p.refreshAPIPort()
 		}
 		if p.apiPort == 0 {
+			lastErr = errors.New("api port not configured")
 			time.Sleep(100 * time.Millisecond)
 			continue
 		}
-		conn, err := net.DialTimeout("tcp", fmt.Sprintf("127.0.0.1:%v", p.apiPort), 500*time.Millisecond)
-		if err == nil {
-			conn.Close()
+		if err := p.queryStatsReady(500 * time.Millisecond); err == nil {
 			return nil
+		} else {
+			lastErr = err
+			p.closeAPIConn()
 		}
 		time.Sleep(100 * time.Millisecond)
 	}
+	if lastErr != nil {
+		return lastErr
+	}
 	return errors.New("api port not ready")
+}
+
+func (p *process) queryStatsReady(timeout time.Duration) error {
+	conn, err := p.getAPIConnWithTimeout(timeout)
+	if err != nil {
+		return err
+	}
+	client := statsservice.NewStatsServiceClient(conn)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	_, err = client.QueryStats(ctx, &statsservice.QueryStatsRequest{Reset_: false})
+	return err
 }
 
 func (p *process) Stop() error {
@@ -379,6 +395,10 @@ func TestConfig(config *Config) error {
 }
 
 func (p *process) getAPIConn() (*grpc.ClientConn, error) {
+	return p.getAPIConnWithTimeout(5 * time.Second)
+}
+
+func (p *process) getAPIConnWithTimeout(timeout time.Duration) (*grpc.ClientConn, error) {
 	if p.apiPort == 0 {
 		return nil, common.NewError("xray api port wrong:", p.apiPort)
 	}
@@ -390,7 +410,7 @@ func (p *process) getAPIConn() (*grpc.ClientConn, error) {
 	conn, err := grpc.Dial(fmt.Sprintf("127.0.0.1:%v", p.apiPort),
 		grpc.WithInsecure(),
 		grpc.WithBlock(),
-		grpc.WithTimeout(5*time.Second),
+		grpc.WithTimeout(timeout),
 	)
 	if err != nil {
 		return nil, err

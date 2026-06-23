@@ -636,12 +636,23 @@ type mtrReport struct {
 }
 
 func (s *DetectService) DetectBackRoute() []BackRouteResult {
+	if _, err := exec.LookPath("mtr"); err != nil {
+		return []BackRouteResult{{
+			City:      "dependency",
+			UpdatedAt: time.Now().Unix(),
+			Error:     "未安装 mtr，请先安装 mtr-tiny 或 mtr 后再检测",
+		}}
+	}
+
 	results := make([]routeResult, len(routeTargets))
 	var wg sync.WaitGroup
+	sem := make(chan struct{}, 3)
 	for i, target := range routeTargets {
 		wg.Add(1)
 		go func(idx int, t routeTarget) {
 			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
 			hosts, err := runMTR(t.IPs)
 			line := "检测失败"
 			if err == nil {

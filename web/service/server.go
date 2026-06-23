@@ -476,6 +476,9 @@ func replaceXrayPackageFiles(files []xrayPackageFile, temps map[string]string) (
 		} else if !os.IsNotExist(err) {
 			return backups, err
 		}
+		if err := os.Chmod(tmpPath, item.perm); err != nil {
+			return backups, err
+		}
 		if err := os.Rename(tmpPath, item.path); err != nil {
 			return backups, err
 		}

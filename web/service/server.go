@@ -285,7 +285,11 @@ func (s *ServerService) downloadXRay(version string) (string, error) {
 	}
 	if err := verifyXrayDigest(version, zipPath); err != nil {
 		os.Remove(zipPath)
-		return "", err
+		// dgst 文件不存在时跳过校验（旧版本 release 可能没有 .dgst）
+		if !strings.Contains(err.Error(), "status 404") {
+			return "", err
+		}
+		logger.Warning("xray digest not available for", version, ", skipping verification")
 	}
 
 	return zipPath, nil

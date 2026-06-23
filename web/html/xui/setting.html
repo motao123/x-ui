@@ -34,6 +34,7 @@
                     <a-space direction="horizontal">
                         <a-button type="primary" :disabled="saveBtnDisable" @click="updateAllSetting">保存配置</a-button>
                         <a-button type="danger" :disabled="!saveBtnDisable" @click="restartPanel">重启面板</a-button>
+                        <a-button icon="download" @click="backupDB">备份数据库</a-button>
                     </a-space>
                     <a-tabs default-active-key="1">
                         <a-tab-pane key="1" tab="面板配置">
@@ -195,6 +196,10 @@
                     await PromiseUtil.sleep(5000);
                     location.reload();
                 }
+            },
+            backupDB() {
+                const basePath = window.location.pathname.replace(/\/$/, '');
+                window.location.href = basePath + '/server/backup/db';
             }
         },
         async mounted() {

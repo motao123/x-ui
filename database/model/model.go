@@ -127,3 +127,13 @@ type Setting struct {
 }
 
 func (Setting) TableName() string { return "settings" }
+
+// TrafficHistory 记录周期性的总流量快照，用于趋势图展示。
+type TrafficHistory struct {
+	Id       int   `json:"id" gorm:"primaryKey;autoIncrement"`
+	Up       int64 `json:"up"`
+	Down     int64 `json:"down"`
+	RecordAt int64 `json:"recordAt" gorm:"index"`
+}
+
+func (TrafficHistory) TableName() string { return "traffic_histories" }

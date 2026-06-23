@@ -3,6 +3,7 @@ package database
 import (
 	"os"
 	"path"
+	"time"
 	"x-ui/config"
 	"x-ui/database/model"
 	"x-ui/logger"
@@ -66,6 +67,15 @@ func initSetting() error {
 	return db.AutoMigrate(&model.Setting{})
 }
 
+func initTrafficHistory() error {
+	if err := db.AutoMigrate(&model.TrafficHistory{}); err != nil {
+		return err
+	}
+	// 清理 30 天前的历史记录
+	cutoff := time.Now().AddDate(0, 0, -30).Unix()
+	return db.Where("record_at < ?", cutoff).Delete(&model.TrafficHistory{}).Error
+}
+
 func InitDB(dbPath string) error {
 	dir := path.Dir(dbPath)
 	err := os.MkdirAll(dir, 0700)
@@ -98,6 +108,10 @@ func InitDB(dbPath string) error {
 		return err
 	}
 	err = initSetting()
+	if err != nil {
+		return err
+	}
+	err = initTrafficHistory()
 	if err != nil {
 		return err
 	}

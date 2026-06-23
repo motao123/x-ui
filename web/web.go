@@ -422,6 +422,8 @@ func (s *Server) startTask() {
 	s.cron.AddJob("@every 30s", job.NewCheckInboundJob())
 	// 每 5 分钟清理一次过期的登录失败记录，避免低流量时 map 膨胀
 	s.cron.AddFunc("@every 5m", controller.CleanupLoginFailures)
+	// 每 10 分钟记录一次总流量快照，用于趋势图
+	s.cron.AddJob("@every 10m", job.NewTrafficHistoryJob())
 	// 每一天提示一次流量情况,上海时间8点30
 	var entry cron.EntryID
 	isTgbotenabled, err := s.settingService.GetTgbotenabled()

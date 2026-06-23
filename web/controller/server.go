@@ -4,11 +4,15 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+	"x-ui/config"
+	"x-ui/database"
+	"x-ui/database/model"
 	"x-ui/web/global"
 	"x-ui/web/service"
 
@@ -68,6 +72,8 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 	g.POST("/genX25519", a.genX25519)
 	g.POST("/logs/tail", a.logTail)
 	g.POST("/logs/download", a.logDownload)
+	g.GET("/backup/db", a.backupDB)
+	g.POST("/traffic/history", a.trafficHistory)
 }
 
 func (a *ServerController) refreshStatus() {
@@ -201,6 +207,36 @@ func clampLogReadLimit(limit int64) int64 {
 		return maxLogReadLimit
 	}
 	return limit
+}
+
+func (a *ServerController) backupDB(c *gin.Context) {
+	dbPath := config.GetDBPath()
+	info, err := os.Stat(dbPath)
+	if err != nil {
+		securityLog(c, "backup_db", false)
+		jsonMsg(c, "备份数据库", err)
+		return
+	}
+	if !info.Mode().IsRegular() {
+		securityLog(c, "backup_db", false)
+		jsonMsg(c, "备份数据库", errors.New("database is not a regular file"))
+		return
+	}
+	securityLog(c, "backup_db", true)
+	c.Header("Content-Type", "application/octet-stream")
+	c.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="x-ui-backup-%s.db"`, time.Now().Format("20060102-150405")))
+	c.File(dbPath)
+}
+
+func (a *ServerController) trafficHistory(c *gin.Context) {
+	var records []model.TrafficHistory
+	since := time.Now().AddDate(0, 0, -7).Unix()
+	err := database.GetDB().
+		Where("record_at >= ?", since).
+		Order("record_at asc").
+		Find(&records).Error
+	securityLog(c, "traffic_history", err == nil)
+	jsonObj(c, records, err)
 }
 
 func (a *ServerController) genX25519(c *gin.Context) {

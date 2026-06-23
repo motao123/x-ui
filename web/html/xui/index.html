@@ -75,6 +75,60 @@
         flex-wrap: wrap;
         gap: 8px;
     }
+    .version-dialog-mask {
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0,0,0,0.45);
+    }
+    .version-dialog {
+        width: min(640px, calc(100vw - 32px));
+        max-height: calc(100vh - 64px);
+        overflow: auto;
+        background: #fff;
+        border-radius: 4px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .version-dialog-header,
+    .version-dialog-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 24px;
+        border-bottom: 1px solid #e8e8e8;
+    }
+    .version-dialog-footer {
+        justify-content: flex-end;
+        gap: 8px;
+        border-top: 1px solid #e8e8e8;
+        border-bottom: 0;
+    }
+    .version-dialog-title {
+        margin: 0;
+        color: rgba(0,0,0,0.85);
+        font-size: 16px;
+        font-weight: 500;
+    }
+    .version-dialog-header .ant-modal-close {
+        position: static;
+        width: 24px;
+        height: 24px;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        cursor: pointer;
+    }
+    .version-dialog-header .ant-modal-close-x {
+        width: 24px;
+        height: 24px;
+        line-height: 24px;
+    }
+    .version-dialog-body {
+        padding: 24px;
+    }
     .version-select {
         width: 100%;
         height: 36px;
@@ -236,32 +290,46 @@
             </transition>
         </a-layout-content>
     </a-layout>
-    <a-modal id="version-modal" v-model="versionModal.visible" title="切换 Xray 版本"
-             :closable="true" :confirm-loading="versionModal.installing" :ok-button-props="{ props: { disabled: !versionModal.selected || versionModal.selected === status.xray.version } }"
-             @ok="installSelectedXrayVersion" ok-text="安装选中版本" cancel-text="取消">
-        <a-alert message="请谨慎选择，旧版本可能配置不兼容" type="warning" show-icon style="margin-bottom: 16px;" />
-        <a-alert v-if="versionModal.error" :message="versionModal.error" type="error" show-icon style="margin-bottom: 16px;" />
-        <div v-show="versionCount > 0" style="font-size: 12px; color: rgba(0,0,0,0.45); margin-bottom: 8px;">
-            已获取 [[ versionCount ]] 个版本 [[ versionModal.loadedAt ? '，更新时间：' + versionModal.loadedAt : '' ]]
+    <div v-if="versionModal.visible" class="version-dialog-mask" @click.self="versionModal.hide()">
+        <div class="version-dialog">
+            <div class="version-dialog-header">
+                <h3 class="version-dialog-title">切换 Xray 版本</h3>
+                <button type="button" class="ant-modal-close" aria-label="Close" @click="versionModal.hide()">
+                    <span class="ant-modal-close-x"><a-icon type="close" /></span>
+                </button>
+            </div>
+            <div class="version-dialog-body">
+                <a-alert message="请谨慎选择，旧版本可能配置不兼容" type="warning" show-icon style="margin-bottom: 16px;" />
+                <a-alert v-if="versionModal.error" :message="versionModal.error" type="error" show-icon style="margin-bottom: 16px;" />
+                <div v-if="versionCount > 0" style="font-size: 12px; color: rgba(0,0,0,0.45); margin-bottom: 8px;">
+                    已获取 [[ versionCount ]] 个版本 [[ versionModal.loadedAt ? '，更新时间：' + versionModal.loadedAt : '' ]]
+                </div>
+                <div v-if="versionCount === 0" style="color: rgba(0,0,0,0.45); text-align: center; padding: 24px 0;">
+                    暂无可用版本，请稍后重试或检查服务器 GitHub 访问
+                </div>
+                <select v-if="versionCount > 0" v-model="versionModal.selected" class="version-select">
+                    <option v-for="version in versionModal.versions" :key="version" :value="version">
+                        [[ version ]][[ version === status.xray.version ? '（当前）' : '' ]]
+                    </option>
+                </select>
+                <div v-if="versionCount > 0" class="version-list">
+                    <a-button v-for="version in versionModal.versions" :key="version"
+                              size="small"
+                              :type="version === versionModal.selected ? 'primary' : 'default'"
+                              @click="versionModal.selected = version">
+                        [[ version ]]
+                        <a-icon v-if="version === status.xray.version" type="check-circle" />
+                    </a-button>
+                </div>
+            </div>
+            <div class="version-dialog-footer">
+                <a-button @click="versionModal.hide()">取消</a-button>
+                <a-button type="primary" :loading="versionModal.installing" :disabled="!versionModal.selected || versionModal.selected === status.xray.version" @click="installSelectedXrayVersion">
+                    安装选中版本
+                </a-button>
+            </div>
         </div>
-        <div v-show="versionCount === 0" style="color: rgba(0,0,0,0.45); text-align: center; padding: 24px 0;">
-            暂无可用版本，请稍后重试或检查服务器 GitHub 访问
-        </div>
-        <select v-show="versionCount > 0" v-model="versionModal.selected" class="version-select">
-            <option v-for="version in versionModal.versions" :key="version" :value="version">
-                [[ version ]][[ version === status.xray.version ? '（当前）' : '' ]]
-            </option>
-        </select>
-        <div v-show="versionCount > 0" class="version-list">
-            <a-button v-for="version in versionModal.versions" :key="version"
-                      size="small"
-                      :type="version === versionModal.selected ? 'primary' : 'default'"
-                      @click="versionModal.selected = version">
-                [[ version ]]
-                <a-icon v-if="version === status.xray.version" type="check-circle" />
-            </a-button>
-        </div>
-    </a-modal>
+    </div>
 </a-layout>
 {{template "js" .}}
 <script nonce="{{ .csp_nonce }}">

@@ -43,7 +43,7 @@
     {{ template "commonSider" . }}
     <a-layout id="content-layout">
         <a-layout-content>
-            <a-spin :spinning="spinningIP || spinningUnlock || spinningProtocols" :delay="200" tip="检测中"/>
+            <a-spin :spinning="spinningIP || spinningUnlock || spinningProtocols || spinningBackRoute" :delay="200" tip="检测中"/>
             <transition name="list" appear>
                 <div>
                     <a-card class="detect-card" title="网络检测">
@@ -52,6 +52,7 @@
                             <a-button icon="global" @click="detectIP">检测 IP</a-button>
                             <a-button icon="api" @click="detectUnlock">检测解锁</a-button>
                             <a-button icon="check-circle" @click="detectProtocols">检测现有协议</a-button>
+                            <a-button icon="fork" @click="detectBackRoute">回程路由</a-button>
                             <a-checkbox v-model="force">强制刷新缓存</a-checkbox>
                         </div>
                         <a-alert type="info" show-icon
@@ -138,6 +139,13 @@
                                 </template>
                                 <a-empty v-else description="尚未检测现有协议"></a-empty>
                             </a-card>
+                            <a-card class="detect-card" title="三网回程路由">
+                                <a-alert v-if="backRouteError" type="warning" show-icon style="margin-bottom: 12px"
+                                         :message="backRouteError"/>
+                                <a-table v-if="backRoute.length" :columns="backRouteColumns" :data-source="backRoute"
+                                         :pagination="false" size="small" row-key="city"/>
+                                <a-empty v-else description="尚未检测回程路由"></a-empty>
+                            </a-card>
                         </a-col>
                     </a-row>
                 </div>
@@ -155,10 +163,19 @@
             spinningIP: false,
             spinningUnlock: false,
             spinningProtocols: false,
+            spinningBackRoute: false,
             force: false,
             ip: {},
             unlock: [],
             protocols: {},
+            backRoute: [],
+            backRouteError: '',
+            backRouteColumns: [
+                { title: '城市', dataIndex: 'city', key: 'city' },
+                { title: '电信', dataIndex: 'telecom', key: 'telecom' },
+                { title: '联通', dataIndex: 'unicom', key: 'unicom' },
+                { title: '移动', dataIndex: 'mobile', key: 'mobile' },
+            ],
         },
         methods: {
             async detectIP() {
@@ -180,7 +197,19 @@
                 if (msg.success) this.protocols = msg.obj || {};
             },
             async detectAll() {
-                await Promise.all([this.detectIP(), this.detectUnlock(), this.detectProtocols()]);
+                await Promise.all([this.detectIP(), this.detectUnlock(), this.detectProtocols(), this.detectBackRoute()]);
+            },
+            async detectBackRoute() {
+                this.spinningBackRoute = true;
+                this.backRouteError = '';
+                const msg = await HttpUtil.post('/xui/detect/backroute');
+                this.spinningBackRoute = false;
+                if (msg.success) {
+                    this.backRoute = msg.obj || [];
+                    if (!this.backRoute.length) this.backRouteError = '未检测到回程路由，请确认服务器已安装 mtr';
+                } else {
+                    this.backRouteError = msg.msg || '检测失败';
+                }
             },
             statusColor(status) {
                 if (status === 'unlocked') return 'green';

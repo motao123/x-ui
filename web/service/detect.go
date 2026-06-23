@@ -6,8 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
+	"os/exec"
 	"strings"
 	"sync"
 	"time"
@@ -173,6 +175,9 @@ func detectPlatforms() []detectPlatform {
 		{id: "google_play", name: "Google Play", check: checkDetectGooglePlay},
 		{id: "openai", name: "OpenAI", check: checkDetectOpenAI},
 		{id: "youtube", name: "YouTube", check: checkDetectYouTube},
+		{id: "claude", name: "Claude", check: checkDetectClaude},
+		{id: "gemini", name: "Gemini", check: checkDetectGemini},
+		{id: "netflix", name: "Netflix", check: checkDetectNetflix},
 	}
 }
 
@@ -214,6 +219,9 @@ var detectHostAllowlist = map[string]bool{
 	"play.google.com":        true,
 	"chat.openai.com":        true,
 	"www.youtube.com":        true,
+	"claude.ai":              true,
+	"gemini.google.com":      true,
+	"netflix.com":            true,
 }
 
 func assertDetectHostAllowed(rawURL string) error {
@@ -430,6 +438,61 @@ func checkDetectYouTube(ctx context.Context, client *http.Client) DetectUnlockRe
 	return DetectUnlockResult{Status: "unknown", Region: region, Hint: "YouTube 可访问，但未识别 Premium 状态"}
 }
 
+func checkDetectClaude(ctx context.Context, client *http.Client) DetectUnlockResult {
+	resp, err := detectClientHead(ctx, client, "https://claude.ai/")
+	if err != nil {
+		return detectUnknown("检测失败")
+	}
+	if resp >= 400 && resp != 403 {
+		return DetectUnlockResult{Status: "blocked", Hint: fmt.Sprintf("Claude 返回 %d", resp)}
+	}
+	return DetectUnlockResult{Status: "unlocked", Hint: "Claude 可访问"}
+}
+
+func checkDetectGemini(ctx context.Context, client *http.Client) DetectUnlockResult {
+	resp, err := detectClientHead(ctx, client, "https://gemini.google.com/")
+	if err != nil {
+		return detectUnknown("检测失败")
+	}
+	if resp >= 400 && resp != 403 {
+		return DetectUnlockResult{Status: "blocked", Hint: fmt.Sprintf("Gemini 返回 %d", resp)}
+	}
+	return DetectUnlockResult{Status: "unlocked", Hint: "Gemini 可访问"}
+}
+
+func checkDetectNetflix(ctx context.Context, client *http.Client) DetectUnlockResult {
+	body, err := detectClientGet(ctx, client, "https://netflix.com/")
+	if err != nil {
+		return detectUnknown("检测失败")
+	}
+	content := strings.ToLower(string(body))
+	if strings.Contains(content, "page-404") || strings.Contains(content, "not available") {
+		return DetectUnlockResult{Status: "blocked", Hint: "Netflix 不可用"}
+	}
+	region := strings.ToUpper(extractBetween(string(body), `"countryCode":"`, `"`))
+	return DetectUnlockResult{Status: "unlocked", Region: region, Hint: "Netflix 可访问"}
+}
+
+func detectClientHead(ctx context.Context, client *http.Client, rawURL string) (int, error) {
+	if err := assertDetectHostAllowed(rawURL); err != nil {
+		return 0, err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodHead, rawURL, nil)
+	if err != nil {
+		return 0, err
+	}
+	req.Header.Set("User-Agent", detectUserAgent)
+	resp, err := client.Do(req)
+	if err != nil {
+		if ctx.Err() != nil {
+			return 0, ctx.Err()
+		}
+		return 0, err
+	}
+	defer resp.Body.Close()
+	return resp.StatusCode, nil
+}
+
 func detectClientGet(ctx context.Context, client *http.Client, rawURL string) ([]byte, error) {
 	if err := assertDetectHostAllowed(rawURL); err != nil {
 		return nil, err
@@ -532,4 +595,204 @@ func safeDetectError(err error) string {
 		return "检测超时"
 	}
 	return "外部检测服务不可用"
+}
+
+// ---- 三网回程路由检测 ----
+
+type BackRouteResult struct {
+	City      string `json:"city"`
+	Telecom   string `json:"telecom"`
+	Unicom    string `json:"unicom"`
+	Mobile    string `json:"mobile"`
+	UpdatedAt int64  `json:"updatedAt"`
+	Error     string `json:"error,omitempty"`
+}
+
+type routeTarget struct {
+	City string
+	ISP  string
+	IPs  []string
+}
+
+var routeTargets = []routeTarget{
+	{City: "shanghai", ISP: "telecom", IPs: []string{"202.96.209.5", "61.129.7.1", "180.169.255.1"}},
+	{City: "shanghai", ISP: "unicom", IPs: []string{"210.22.97.1", "58.247.0.1", "116.228.111.1"}},
+	{City: "shanghai", ISP: "mobile", IPs: []string{"211.136.112.50", "117.131.0.1", "120.196.0.1"}},
+	{City: "beijing", ISP: "telecom", IPs: []string{"219.141.140.10", "202.106.0.20", "61.51.0.1"}},
+	{City: "beijing", ISP: "unicom", IPs: []string{"123.123.123.123", "202.106.50.1", "60.247.0.1"}},
+	{City: "beijing", ISP: "mobile", IPs: []string{"221.130.33.52", "211.137.130.1", "120.197.0.1"}},
+	{City: "guangzhou", ISP: "telecom", IPs: []string{"119.145.0.1", "113.108.0.1", "58.60.0.1"}},
+	{City: "guangzhou", ISP: "unicom", IPs: []string{"210.21.4.1", "120.80.0.1", "183.56.0.1"}},
+	{City: "guangzhou", ISP: "mobile", IPs: []string{"120.196.165.24", "211.139.0.1", "117.135.0.1"}},
+}
+
+type mtrReport struct {
+	Report struct {
+		Hubs []struct {
+			Host string  `json:"host"`
+			Loss float64 `json:"Loss%"`
+		} `json:"hubs"`
+	} `json:"report"`
+}
+
+func (s *DetectService) DetectBackRoute() []BackRouteResult {
+	results := make([]routeResult, len(routeTargets))
+	var wg sync.WaitGroup
+	for i, target := range routeTargets {
+		wg.Add(1)
+		go func(idx int, t routeTarget) {
+			defer wg.Done()
+			hosts, err := runMTR(t.IPs)
+			line := "检测失败"
+			if err == nil {
+				line = detectLine(t.ISP, hosts)
+			}
+			results[idx] = routeResult{City: t.City, ISP: t.ISP, Line: line}
+		}(i, target)
+	}
+	wg.Wait()
+
+	cityMap := map[string]*BackRouteResult{}
+	order := []string{}
+	for _, r := range results {
+		if _, ok := cityMap[r.City]; !ok {
+			cityMap[r.City] = &BackRouteResult{City: r.City, UpdatedAt: time.Now().Unix()}
+			order = append(order, r.City)
+		}
+		switch r.ISP {
+		case "telecom":
+			cityMap[r.City].Telecom = r.Line
+		case "unicom":
+			cityMap[r.City].Unicom = r.Line
+		case "mobile":
+			cityMap[r.City].Mobile = r.Line
+		}
+	}
+	out := make([]BackRouteResult, 0, len(order))
+	for _, city := range order {
+		out = append(out, *cityMap[city])
+	}
+	return out
+}
+
+type routeResult struct {
+	City string
+	ISP  string
+	Line string
+}
+
+func runMTR(ips []string) ([]string, error) {
+	for _, ip := range ips {
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		out, err := exec.CommandContext(ctx, "mtr", "--tcp", "--port", "80",
+			"--report", "--report-cycles", "5", "--json", ip).Output()
+		cancel()
+		if err != nil {
+			continue
+		}
+		var report mtrReport
+		if err := json.Unmarshal(out, &report); err != nil {
+			continue
+		}
+		var hosts []string
+		for _, hub := range report.Report.Hubs {
+			if hub.Host != "???" && hub.Loss < 100 {
+				hosts = append(hosts, hub.Host)
+			}
+		}
+		if len(hosts) > 0 {
+			return hosts, nil
+		}
+	}
+	return nil, errors.New("all IPs failed")
+}
+
+func ipHasPrefix(ip, prefix string) bool {
+	parts := strings.Split(prefix, ".")
+	ipParts := strings.Split(ip, ".")
+	for i, p := range parts {
+		if p == "*" {
+			continue
+		}
+		if i >= len(ipParts) || ipParts[i] != p {
+			return false
+		}
+	}
+	return true
+}
+
+func isPublicIP(host string) bool {
+	ip := net.ParseIP(host)
+	return ip != nil && !ip.IsPrivate() && !ip.IsLoopback()
+}
+
+func detectTelecom(hosts []string) string {
+	cn2Count := 0
+	for _, h := range hosts {
+		if !isPublicIP(h) {
+			continue
+		}
+		if ipHasPrefix(h, "59.43.*.*") {
+			cn2Count++
+		}
+	}
+	if cn2Count >= 2 {
+		return "CN2 GIA"
+	}
+	if cn2Count == 1 {
+		return "CN2 GT"
+	}
+	return "163"
+}
+
+func detectUnicom(hosts []string) string {
+	for _, h := range hosts {
+		if !isPublicIP(h) {
+			continue
+		}
+		if ipHasPrefix(h, "210.51.*.*") || ipHasPrefix(h, "218.105.*.*") {
+			return "9929"
+		}
+	}
+	for _, h := range hosts {
+		if !isPublicIP(h) {
+			continue
+		}
+		if ipHasPrefix(h, "219.158.*.*") {
+			return "4837"
+		}
+	}
+	return "169"
+}
+
+func detectMobile(hosts []string) string {
+	for _, h := range hosts {
+		if !isPublicIP(h) {
+			continue
+		}
+		if ipHasPrefix(h, "223.120.*.*") || ipHasPrefix(h, "223.119.*.*") || ipHasPrefix(h, "223.118.*.*") {
+			return "CMIN2"
+		}
+	}
+	for _, h := range hosts {
+		if !isPublicIP(h) {
+			continue
+		}
+		if ipHasPrefix(h, "221.183.*.*") || ipHasPrefix(h, "211.136.*.*") || ipHasPrefix(h, "211.137.*.*") {
+			return "CMI Basic"
+		}
+	}
+	return "CMI"
+}
+
+func detectLine(isp string, hosts []string) string {
+	switch isp {
+	case "telecom":
+		return detectTelecom(hosts)
+	case "unicom":
+		return detectUnicom(hosts)
+	case "mobile":
+		return detectMobile(hosts)
+	}
+	return "未知"
 }

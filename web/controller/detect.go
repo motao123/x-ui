@@ -45,6 +45,7 @@ func (a *DetectController) initRouter(g *gin.RouterGroup) {
 	g.POST("/unlock", a.unlock)
 	g.POST("/all", a.all)
 	g.POST("/protocols", a.protocols)
+	g.POST("/backroute", a.backRoute)
 }
 
 func (a *DetectController) ip(c *gin.Context) {
@@ -102,6 +103,12 @@ func (a *DetectController) protocols(c *gin.Context) {
 		result.Error = "Xray 配置验证失败，请查看面板日志"
 	}
 	securityLog(c, "detect_protocols", result.Valid)
+	jsonObj(c, result, nil)
+}
+
+func (a *DetectController) backRoute(c *gin.Context) {
+	result := a.detectService.DetectBackRoute()
+	securityLog(c, "detect_backroute", true)
 	jsonObj(c, result, nil)
 }
 

@@ -75,6 +75,16 @@
         flex-wrap: wrap;
         gap: 8px;
     }
+    .version-select {
+        width: 100%;
+        height: 36px;
+        margin-bottom: 12px;
+        padding: 4px 11px;
+        border: 1px solid #d9d9d9;
+        border-radius: 4px;
+        background: #fff;
+        color: rgba(0,0,0,0.85);
+    }
     .xray-status-bar {
         display: flex;
         align-items: center;
@@ -231,16 +241,18 @@
              @ok="installSelectedXrayVersion" ok-text="安装选中版本" cancel-text="取消">
         <a-alert message="请谨慎选择，旧版本可能配置不兼容" type="warning" show-icon style="margin-bottom: 16px;" />
         <a-alert v-if="versionModal.error" :message="versionModal.error" type="error" show-icon style="margin-bottom: 16px;" />
-        <div v-if="versionModal.versions.length > 0" style="font-size: 12px; color: rgba(0,0,0,0.45); margin-bottom: 8px;">
-            已获取 [[ versionModal.versions.length ]] 个版本 [[ versionModal.loadedAt ? '，更新时间：' + versionModal.loadedAt : '' ]]
+        <div v-show="versionCount > 0" style="font-size: 12px; color: rgba(0,0,0,0.45); margin-bottom: 8px;">
+            已获取 [[ versionCount ]] 个版本 [[ versionModal.loadedAt ? '，更新时间：' + versionModal.loadedAt : '' ]]
         </div>
-        <a-empty v-if="versionModal.versions.length === 0" description="暂无可用版本，请稍后重试或检查服务器 GitHub 访问" />
-        <a-select v-if="versionModal.versions.length > 0" v-model="versionModal.selected" style="width: 100%; margin-bottom: 12px;" show-search placeholder="请选择要安装的 Xray 版本">
-            <a-select-option v-for="version in versionModal.versions" :key="version" :value="version">
+        <div v-show="versionCount === 0" style="color: rgba(0,0,0,0.45); text-align: center; padding: 24px 0;">
+            暂无可用版本，请稍后重试或检查服务器 GitHub 访问
+        </div>
+        <select v-show="versionCount > 0" v-model="versionModal.selected" class="version-select">
+            <option v-for="version in versionModal.versions" :key="version" :value="version">
                 [[ version ]][[ version === status.xray.version ? '（当前）' : '' ]]
-            </a-select-option>
-        </a-select>
-        <div v-if="versionModal.versions.length > 0" class="version-list">
+            </option>
+        </select>
+        <div v-show="versionCount > 0" class="version-list">
             <a-button v-for="version in versionModal.versions" :key="version"
                       size="small"
                       :type="version === versionModal.selected ? 'primary' : 'default'"
@@ -363,6 +375,11 @@
             spinning: false,
             loadingTip: '加载中',
         },
+        computed: {
+            versionCount() {
+                return Array.isArray(this.versionModal.versions) ? this.versionModal.versions.length : 0;
+            },
+        },
         methods: {
             loading(spinning, tip = '加载中') {
                 this.spinning = spinning;
@@ -393,6 +410,8 @@
                     versionModal.show([], this.status.xray.version, msg && msg.msg ? msg.msg : '获取 Xray 版本失败或版本列表为空');
                     return;
                 }
+                console.log('xray versions loaded:', versions.length, versions);
+                this.$message.success(`已获取 ${versions.length} 个 Xray 版本`);
                 versionModal.show(versions, this.status.xray.version);
             },
             async installSelectedXrayVersion() {

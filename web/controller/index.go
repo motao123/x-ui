@@ -50,7 +50,7 @@ func NewIndexController(g *gin.RouterGroup) *IndexController {
 func (a *IndexController) initRouter(g *gin.RouterGroup) {
 	g.GET("/", a.index)
 	g.POST("/login", a.login)
-	g.GET("/logout", a.logout)
+	g.POST("/logout", a.logout)
 }
 
 func (a *IndexController) index(c *gin.Context) {
@@ -116,7 +116,7 @@ func (a *IndexController) logout(c *gin.Context) {
 	}
 	securityLog(c, "logout", true)
 	session.ClearSession(c, c.GetString("base_path"))
-	c.Redirect(http.StatusTemporaryRedirect, c.GetString("base_path"))
+	jsonMsg(c, "退出登录", nil)
 }
 
 func loginFailureKey(ip string, username string) string {

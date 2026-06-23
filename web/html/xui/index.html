@@ -376,7 +376,7 @@
             },
             async openSelectV2rayVersion() {
                 this.loading(true);
-                const msg = await HttpUtil.get(`/server/getXrayVersion?_=${Date.now()}`);
+                const msg = await HttpUtil.post('/server/getXrayVersion');
                 this.loading(false);
                 const versions = this.normalizeVersionList(msg);
                 if (versions.length === 0) {

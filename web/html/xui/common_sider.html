@@ -28,7 +28,7 @@
         <a-icon type="link"></a-icon>
         <span>其他</span>
     </template>
-    <a-menu-item key="javascript:toggleTheme()">
+    <a-menu-item key="toggleTheme">
         <a-icon type="bulb"></a-icon>
         <span>切换主题</span>
     </a-menu-item>
@@ -37,7 +37,7 @@
         <span>Github</span>
     </a-menu-item>
 </a-sub-menu>
-<a-menu-item key="{{ .base_path }}logout">
+<a-menu-item key="logout">
     <a-icon type="logout"></a-icon>
     <span>退出登录</span>
 </a-menu-item>
@@ -47,7 +47,7 @@
 {{define "commonSider"}}
 <a-layout-sider id="sider" collapsible breakpoint="md" collapsed-width="0">
     <a-menu theme="dark" mode="inline" :selected-keys="['{{ .request_uri }}']"
-            @click="({key}) => { if (key.startsWith('http')) { window.open(key); } else if (key.startsWith('javascript:')) { eval(key.slice(11)); } else { location.href = key; } }">
+            @click="handleSiderMenuClick">
         {{template "menuItems" .}}
     </a-menu>
 </a-layout-sider>
@@ -58,11 +58,29 @@
         <a-icon :type="siderDrawer.visible ? 'close' : 'menu-fold'"></a-icon>
     </div>
     <a-menu theme="light" mode="inline" :selected-keys="['{{ .request_uri }}']"
-        @click="({key}) => { if (key.startsWith('http')) { window.open(key); } else if (key.startsWith('javascript:')) { eval(key.slice(11)); } else { location.href = key; } }">
+        @click="handleSiderMenuClick">
         {{template "menuItems" .}}
     </a-menu>
 </a-drawer>
 <script nonce="{{ .csp_nonce }}">
+
+    function handleSiderMenuClick({key}) {
+        if (key.startsWith('http')) {
+            window.open(key);
+            return;
+        }
+        if (key === 'toggleTheme') {
+            toggleTheme();
+            return;
+        }
+        if (key === 'logout') {
+            axios.post('/logout').then(() => {
+                location.href = basePath;
+            });
+            return;
+        }
+        location.href = key;
+    }
 
     const siderDrawer = {
         visible: false,

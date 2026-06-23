@@ -81,6 +81,10 @@ func initProxySubscription() error {
 	return db.AutoMigrate(&model.ProxyUser{}, &model.ProxyUserInbound{}, &model.SubscriptionAccess{})
 }
 
+func initCertificate() error {
+	return db.AutoMigrate(&model.Certificate{})
+}
+
 func InitDB(dbPath string) error {
 	dir := path.Dir(dbPath)
 	err := os.MkdirAll(dir, 0700)
@@ -121,6 +125,10 @@ func InitDB(dbPath string) error {
 		return err
 	}
 	err = initProxySubscription()
+	if err != nil {
+		return err
+	}
+	err = initCertificate()
 	if err != nil {
 		return err
 	}

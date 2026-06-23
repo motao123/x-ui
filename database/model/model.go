@@ -95,3 +95,18 @@ type SubscriptionAccess struct {
 }
 
 func (SubscriptionAccess) TableName() string { return "subscription_accesses" }
+
+type Certificate struct {
+	Id        int    `json:"id" form:"id" gorm:"primaryKey;autoIncrement"`
+	Name      string `json:"name" form:"name" gorm:"not null"`
+	Domain    string `json:"domain" form:"domain"`
+	CertFile  string `json:"certFile" form:"certFile" gorm:"not null"`
+	KeyFile   string `json:"keyFile" form:"keyFile" gorm:"not null"`
+	Source    string `json:"source" form:"source"`
+	NotBefore int64  `json:"notBefore"`
+	NotAfter  int64  `json:"notAfter"`
+	CreatedAt int64  `json:"createdAt"`
+	UpdatedAt int64  `json:"updatedAt"`
+}
+
+func (Certificate) TableName() string { return "certificates" }

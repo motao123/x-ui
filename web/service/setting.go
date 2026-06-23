@@ -300,8 +300,16 @@ func (s *SettingService) GetCertFile() (string, error) {
 	return s.getString("webCertFile")
 }
 
+func (s *SettingService) SetCertFile(certFile string) error {
+	return s.setString("webCertFile", certFile)
+}
+
 func (s *SettingService) GetKeyFile() (string, error) {
 	return s.getString("webKeyFile")
+}
+
+func (s *SettingService) SetKeyFile(keyFile string) error {
+	return s.setString("webKeyFile", keyFile)
 }
 
 func (s *SettingService) GetSecret() ([]byte, error) {

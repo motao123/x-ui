@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+{{template "head" .}}
+<style>
+    @media (min-width: 769px) { .ant-layout-content { margin: 24px 16px; } }
+    .toolbar { margin-bottom: 16px; display: flex; gap: 8px; flex-wrap: wrap; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
+</style>
+<body>
+<a-layout id="app" v-cloak>
+    {{ template "commonSider" . }}
+    <a-layout id="content-layout">
+        <a-layout-content>
+            <a-card title="证书管理">
+                <div class="toolbar">
+                    <a-button type="primary" icon="upload" @click="openUpload">上传证书</a-button>
+                    <a-button icon="reload" @click="loadCertificates">刷新</a-button>
+                </div>
+                <a-alert type="info" show-icon style="margin-bottom: 16px" message="部署到面板后需要重启面板才会启用 HTTPS。" />
+                <a-table :columns="columns" :data-source="certificates" :row-key="record => record.id" :pagination="false" size="middle">
+                    <template slot="validity" slot-scope="text, record">
+                        [[ record.notAfter > 0 ? moment(record.notAfter * 1000).format('YYYY-MM-DD HH:mm:ss') : '-' ]]
+                    </template>
+                    <template slot="path" slot-scope="text, record">
+                        <div class="mono">[[ record.certFile ]]</div>
+                        <div class="mono">[[ record.keyFile ]]</div>
+                    </template>
+                    <template slot="action" slot-scope="text, record">
+                        <a-button size="small" @click="showContent(record)">查看</a-button>
+                        <a-button size="small" @click="deployPanel(record)">部署到面板</a-button>
+                        <a-button size="small" type="danger" @click="deleteCert(record)">删除</a-button>
+                    </template>
+                </a-table>
+            </a-card>
+        </a-layout-content>
+    </a-layout>
+
+    <a-modal v-model="uploadModal.visible" title="上传证书" @ok="uploadCertificate" :confirm-loading="uploadModal.loading" ok-text="保存" cancel-text="取消" width="720px">
+        <a-form layout="vertical">
+            <a-form-item label="名称">
+                <a-input v-model.trim="uploadModal.form.name" placeholder="example-com" />
+            </a-form-item>
+            <a-form-item label="域名">
+                <a-input v-model.trim="uploadModal.form.domain" placeholder="example.com" />
+            </a-form-item>
+            <a-form-item label="证书 PEM">
+                <a-input type="textarea" :rows="8" v-model="uploadModal.form.certPem" class="mono" />
+            </a-form-item>
+            <a-form-item label="私钥 PEM">
+                <a-input type="textarea" :rows="8" v-model="uploadModal.form.keyPem" class="mono" />
+            </a-form-item>
+        </a-form>
+    </a-modal>
+
+    <a-modal v-model="contentModal.visible" title="证书内容" :footer="null" width="760px">
+        <a-tabs>
+            <a-tab-pane key="cert" tab="证书">
+                <a-input type="textarea" :rows="12" read-only v-model="contentModal.certPem" class="mono" />
+            </a-tab-pane>
+            <a-tab-pane key="key" tab="私钥">
+                <a-input type="textarea" :rows="12" read-only v-model="contentModal.keyPem" class="mono" />
+            </a-tab-pane>
+        </a-tabs>
+    </a-modal>
+</a-layout>
+{{template "js" .}}
+<script nonce="{{ .csp_nonce }}">
+    const app = new Vue({
+        delimiters: ['[[', ']]'],
+        el: '#app',
+        data: {
+            siderDrawer,
+            certificates: [],
+            uploadModal: { visible: false, loading: false, form: { name: '', domain: '', certPem: '', keyPem: '' } },
+            contentModal: { visible: false, certPem: '', keyPem: '' },
+            columns: [
+                { title: '名称', dataIndex: 'name' },
+                { title: '域名', dataIndex: 'domain' },
+                { title: '来源', dataIndex: 'source' },
+                { title: '有效期至', scopedSlots: { customRender: 'validity' } },
+                { title: '路径', scopedSlots: { customRender: 'path' } },
+                { title: '操作', scopedSlots: { customRender: 'action' }, width: 260 },
+            ],
+        },
+        methods: {
+            async loadCertificates() {
+                const msg = await HttpUtil.post('/xui/certificate/list');
+                if (msg.success) this.certificates = msg.obj || [];
+            },
+            openUpload() {
+                this.uploadModal.form = { name: '', domain: '', certPem: '', keyPem: '' };
+                this.uploadModal.visible = true;
+            },
+            async uploadCertificate() {
+                this.uploadModal.loading = true;
+                const msg = await HttpUtil.post('/xui/certificate/upload', this.uploadModal.form);
+                this.uploadModal.loading = false;
+                if (msg.success) {
+                    this.uploadModal.visible = false;
+                    await this.loadCertificates();
+                }
+            },
+            async showContent(record) {
+                const msg = await HttpUtil.post(`/xui/certificate/content/${record.id}`);
+                if (msg.success) {
+                    this.contentModal.certPem = msg.obj.certPem;
+                    this.contentModal.keyPem = msg.obj.keyPem;
+                    this.contentModal.visible = true;
+                }
+            },
+            deployPanel(record) {
+                this.$confirm({ title: '部署到面板', content: '将把该证书路径写入面板设置，重启面板后启用 HTTPS。确定继续？', onOk: async () => { await HttpUtil.post(`/xui/certificate/deployPanel/${record.id}`); } });
+            },
+            deleteCert(record) {
+                this.$confirm({ title: '删除证书', content: '确定删除该证书记录和文件？', okType: 'danger', onOk: async () => { const msg = await HttpUtil.post(`/xui/certificate/del/${record.id}`); if (msg.success) await this.loadCertificates(); } });
+            },
+        },
+        mounted() { this.loadCertificates(); },
+    });
+</script>
+</body>
+</html>

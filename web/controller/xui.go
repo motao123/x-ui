@@ -34,6 +34,7 @@ func (a *XUIController) initRouter(g *gin.RouterGroup) {
 }
 
 func (a *XUIController) index(c *gin.Context) {
+	c.Header("Cache-Control", "no-store")
 	html(c, "index.html", "系统状态", nil)
 }
 
@@ -50,5 +51,6 @@ func (a *XUIController) logs(c *gin.Context) {
 }
 
 func (a *XUIController) setting(c *gin.Context) {
+	c.Header("Cache-Control", "no-store")
 	html(c, "setting.html", "设置", nil)
 }

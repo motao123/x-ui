@@ -24,14 +24,19 @@
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 16px;
-        min-height: 54px;
+        min-height: 58px;
         align-items: center;
     }
     .stat-metric {
-        display: grid;
-        grid-template-columns: auto minmax(110px, 1fr);
-        align-items: center;
-        column-gap: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    .stat-metric:first-child {
+        align-items: flex-start;
+    }
+    .stat-metric:last-child {
+        align-items: flex-end;
     }
     .stat-label {
         font-size: 13px;
@@ -40,7 +45,7 @@
     }
     .stat-value {
         display: block;
-        min-width: 110px;
+        min-width: 132px;
         font-size: 16px;
         font-weight: 500;
         color: rgba(0,0,0,0.85);
@@ -204,6 +209,9 @@
              ok-text="确定" cancel-text="取消">
         <a-alert message="请谨慎选择，旧版本可能配置不兼容" type="warning" show-icon style="margin-bottom: 16px;" />
         <a-alert v-if="versionModal.error" :message="versionModal.error" type="error" show-icon style="margin-bottom: 16px;" />
+        <div v-if="versionModal.versions.length > 0" style="font-size: 12px; color: rgba(0,0,0,0.45); margin-bottom: 8px;">
+            已获取 [[ versionModal.versions.length ]] 个版本 [[ versionModal.loadedAt ? '，更新时间：' + versionModal.loadedAt : '' ]]
+        </div>
         <a-empty v-if="versionModal.versions.length === 0" description="暂无可用版本，请稍后重试或检查服务器 GitHub 访问" />
         <template v-for="version, index in versionModal.versions">
             <a-tag :color="version === status.xray.version ? '#1890ff' : (index % 2 == 0 ? 'blue' : 'green')"
@@ -298,10 +306,12 @@
         visible: false,
         versions: [],
         error: '',
+        loadedAt: '',
         show(versions, error = '') {
             this.visible = true;
             this.versions = Array.isArray(versions) ? versions : [];
             this.error = error;
+            this.loadedAt = this.versions.length > 0 ? moment().format('HH:mm:ss') : '';
         },
         hide() {
             this.visible = false;
@@ -333,15 +343,23 @@
             setStatus(data) {
                 this.status = new Status(data);
             },
+            normalizeVersionList(msg) {
+                if (!msg) return [];
+                if (Array.isArray(msg)) return msg;
+                if (Array.isArray(msg.obj)) return msg.obj;
+                if (Array.isArray(msg.data)) return msg.data;
+                return [];
+            },
             async openSelectV2rayVersion() {
                 this.loading(true);
-                const msg = await HttpUtil.post('/server/getXrayVersion');
+                const msg = await HttpUtil.get(`/server/getXrayVersion?_=${Date.now()}`);
                 this.loading(false);
-                if (!msg.success) {
-                    versionModal.show([], msg.msg || '获取 Xray 版本失败');
+                const versions = this.normalizeVersionList(msg);
+                if (versions.length === 0) {
+                    versionModal.show([], msg && msg.msg ? msg.msg : '获取 Xray 版本失败或版本列表为空');
                     return;
                 }
-                versionModal.show(msg.obj);
+                versionModal.show(versions);
             },
             switchV2rayVersion(version) {
                 this.$confirm({

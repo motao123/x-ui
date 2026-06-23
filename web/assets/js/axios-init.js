@@ -20,3 +20,20 @@ axios.interceptors.request.use(
     },
     error => Promise.reject(error)
 );
+
+// 统一错误拦截：403 跳转登录，其他错误给出提示
+axios.interceptors.response.use(
+    response => response,
+    error => {
+        if (error && error.response) {
+            const status = error.response.status;
+            if (status === 401 || status === 403) {
+                const basePath = axios.defaults.baseURL || '/';
+                if (!window.location.pathname.endsWith('/login') && !window.location.pathname.endsWith('/')) {
+                    window.location.href = basePath;
+                }
+            }
+        }
+        return Promise.reject(error);
+    }
+);

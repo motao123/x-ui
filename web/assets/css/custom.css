@@ -10,6 +10,77 @@
     display: none;
 }
 
+/* ---- 暗色模式 ---- */
+body.dark-theme {
+    background: #141414;
+    color: rgba(255, 255, 255, 0.85);
+}
+body.dark-theme .ant-layout {
+    background: #141414;
+}
+body.dark-theme .ant-layout-content {
+    background: #141414;
+}
+body.dark-theme .ant-card {
+    background: #1f1f1f;
+    border-color: #303030;
+    color: rgba(255, 255, 255, 0.85);
+}
+body.dark-theme .ant-card .ant-card-head {
+    color: rgba(255, 255, 255, 0.85);
+    border-bottom-color: #303030;
+}
+body.dark-theme .ant-table {
+    background: #1f1f1f;
+    color: rgba(255, 255, 255, 0.85);
+}
+body.dark-theme .ant-table-thead > tr > th {
+    background: #262626;
+    color: rgba(255, 255, 255, 0.85);
+    border-bottom-color: #303030;
+}
+body.dark-theme .ant-table-tbody > tr > td {
+    border-bottom-color: #303030;
+}
+body.dark-theme .ant-table-tbody > tr:hover > td {
+    background: #262626;
+}
+body.dark-theme .ant-modal-content,
+body.dark-theme .ant-modal-header {
+    background: #1f1f1f;
+    color: rgba(255, 255, 255, 0.85);
+}
+body.dark-theme .ant-form-item-label > label {
+    color: rgba(255, 255, 255, 0.85);
+}
+body.dark-theme .ant-input,
+body.dark-theme .ant-input-affix-wrapper,
+body.dark-theme .ant-select-selection,
+body.dark-theme .ant-input-number {
+    background: #262626;
+    color: rgba(255, 255, 255, 0.85);
+    border-color: #303030;
+}
+body.dark-theme .ant-btn-default {
+    background: #262626;
+    color: rgba(255, 255, 255, 0.85);
+    border-color: #303030;
+}
+body.dark-theme .drawer-handle {
+    background: #1f1f1f;
+    color: rgba(255, 255, 255, 0.85);
+}
+body.dark-theme .ant-alert-info {
+    background: #1a2332;
+    border-color: #1f3a5f;
+}
+body.dark-theme .detect-info-row {
+    border-bottom-color: #303030;
+}
+body.dark-theme .stat-label {
+    color: rgba(255, 255, 255, 0.45);
+}
+
 .ant-card {
     border-radius: 16px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.06);

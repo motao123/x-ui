@@ -8,6 +8,19 @@
     <meta name="base-path" content="{{ .base_path }}">
     <link rel="stylesheet" href="{{ .base_path }}assets/ant-design-vue@1.7.2/antd.min.css">
     <link rel="stylesheet" href="{{ .base_path }}assets/css/custom.css?{{ .cur_ver }}">
+    <script nonce="{{ .csp_nonce }}">
+        (function() {
+            try {
+                if (localStorage.getItem('xui-theme') === 'dark') {
+                    document.body.classList.add('dark-theme');
+                }
+            } catch (e) {}
+        })();
+        function toggleTheme() {
+            var isDark = document.body.classList.toggle('dark-theme');
+            try { localStorage.setItem('xui-theme', isDark ? 'dark' : 'light'); } catch (e) {}
+        }
+    </script>
     <style>
         [v-cloak] {
             display: none;

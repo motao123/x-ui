@@ -41,6 +41,7 @@
                         </a-select>
                         <a-button type="primary" icon="reload" @click="refresh">刷新</a-button>
                         <a-button icon="download" :disabled="!log.enabled || !log.content" @click="download">下载当前内容</a-button>
+                        <a-switch v-model="liveFollow" checked-children="实时" un-checked-children="暂停" @change="toggleLive" :disabled="!log.enabled"/>
                     </div>
 
                     <a-alert v-if="!log.enabled" type="info" show-icon
@@ -69,6 +70,8 @@
             siderDrawer,
             spinning: false,
             limit: 64 * 1024,
+            liveFollow: false,
+            liveSource: null,
             log: {
                 enabled: true,
                 fileName: '',
@@ -91,6 +94,42 @@
                         const textarea = document.querySelector('.log-content textarea');
                         if (textarea) textarea.scrollTop = textarea.scrollHeight;
                     });
+                }
+            },
+            toggleLive(checked) {
+                if (checked) {
+                    this.startLive();
+                } else {
+                    this.stopLive();
+                }
+            },
+            startLive() {
+                this.stopLive();
+                const basePath = (axios.defaults.baseURL || '/').replace(/\/$/, '');
+                const url = basePath + '/server/logs/stream';
+                const es = new EventSource(url);
+                this.liveSource = es;
+                es.onmessage = (event) => {
+                    this.log.content = (this.log.content || '') + event.data + '\n';
+                    this.$nextTick(() => {
+                        const textarea = document.querySelector('.log-content textarea');
+                        if (textarea) textarea.scrollTop = textarea.scrollHeight;
+                    });
+                };
+                es.addEventListener('disabled', () => {
+                    this.stopLive();
+                    this.liveFollow = false;
+                    this.log.enabled = false;
+                });
+                es.onerror = () => {
+                    this.stopLive();
+                    this.liveFollow = false;
+                };
+            },
+            stopLive() {
+                if (this.liveSource) {
+                    this.liveSource.close();
+                    this.liveSource = null;
                 }
             },
             async download() {
@@ -117,6 +156,9 @@
         },
         mounted() {
             this.refresh();
+        },
+        beforeDestroy() {
+            this.stopLive();
         },
     });
 </script>

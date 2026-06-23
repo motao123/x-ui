@@ -1,11 +1,13 @@
 package controller
 
 import (
+	"bufio"
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -72,6 +74,7 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 	g.POST("/genX25519", a.genX25519)
 	g.POST("/logs/tail", a.logTail)
 	g.POST("/logs/download", a.logDownload)
+	g.GET("/logs/stream", a.logStream)
 	g.GET("/backup/db", a.backupDB)
 	g.POST("/traffic/history", a.trafficHistory)
 }
@@ -207,6 +210,124 @@ func clampLogReadLimit(limit int64) int64 {
 		return maxLogReadLimit
 	}
 	return limit
+}
+
+func (a *ServerController) logStream(c *gin.Context) {
+	logPath := strings.TrimSpace(os.Getenv("XUI_LOG_FILE"))
+	if logPath == "" {
+		c.Header("Content-Type", "text/event-stream")
+		c.String(200, "event:disabled\ndata:{}\n\n")
+		return
+	}
+
+	file, err := os.Open(logPath)
+	if err != nil {
+		securityLog(c, "stream_panel_log", false)
+		c.String(500, "open log failed")
+		return
+	}
+	defer file.Close()
+
+	info, err := file.Stat()
+	if err != nil {
+		securityLog(c, "stream_panel_log", false)
+		c.String(500, "stat log failed")
+		return
+	}
+	if !info.Mode().IsRegular() {
+		securityLog(c, "stream_panel_log", false)
+		c.String(500, "log is not regular file")
+		return
+	}
+
+	securityLog(c, "stream_panel_log", true)
+
+	c.Header("Content-Type", "text/event-stream")
+	c.Header("Cache-Control", "no-cache")
+	c.Header("Connection", "keep-alive")
+	c.Header("X-Accel-Buffering", "no")
+
+	flusher, ok := c.Writer.(http.Flusher)
+	if !ok {
+		c.String(500, "streaming not supported")
+		return
+	}
+
+	// 发送初始元数据
+	meta := fmt.Sprintf("data:{\"fileName\":%q,\"size\":%d}\n\n", filepath.Base(logPath), info.Size())
+	c.Writer.WriteString(meta)
+	flusher.Flush()
+
+	// 发送最近 16KB 历史
+	tailLimit := int64(16 * 1024)
+	size := info.Size()
+	offset := size - tailLimit
+	if offset < 0 {
+		offset = 0
+	}
+	if _, err := file.Seek(offset, io.SeekStart); err != nil {
+		return
+	}
+	reader := bufio.NewReader(file)
+	for {
+		line, err := reader.ReadBytes('\n')
+		if len(line) > 0 {
+			c.Writer.WriteString("data:" + strings.TrimRight(string(line), "\n") + "\n\n")
+		}
+		if err != nil {
+			break
+		}
+	}
+	flusher.Flush()
+
+	// follow 模式：持续读新内容
+	ctx := c.Request.Context()
+	ticker := time.NewTicker(500 * time.Millisecond)
+	defer ticker.Stop()
+	lastSize := size
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			info, err := file.Stat()
+			if err != nil {
+				continue
+			}
+			curSize := info.Size()
+			// 文件被截断或轮转，重置
+			if curSize < lastSize {
+				file.Seek(0, io.SeekStart)
+			} else if curSize == lastSize {
+				continue
+			}
+			// 读取新增内容
+			buf := make([]byte, 0, 4096)
+			tmp := make([]byte, 4096)
+			for {
+				n, err := file.Read(tmp)
+				if n > 0 {
+					buf = append(buf, tmp[:n]...)
+				}
+				if err != nil {
+					break
+				}
+				if n == 0 {
+					break
+				}
+			}
+			if len(buf) > 0 {
+				lastSize = curSize
+				for _, line := range strings.Split(string(buf), "\n") {
+					if line == "" {
+						continue
+					}
+					c.Writer.WriteString("data:" + line + "\n\n")
+				}
+				flusher.Flush()
+			}
+		}
+	}
 }
 
 func (a *ServerController) backupDB(c *gin.Context) {

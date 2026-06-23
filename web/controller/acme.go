@@ -15,6 +15,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"x-ui/logger"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-acme/lego/v4/certcrypto"
@@ -254,4 +255,120 @@ func saveAcmeRegistration(dir string, user *acmeUser) error {
 		return err
 	}
 	return os.WriteFile(filepath.Join(dir, "account.json"), data, 0600)
+}
+
+// RenewAcmeCertificates 扫描 acmeBaseDir 下所有已注册域名，
+// 对即将到期（30 天内）或已过期的证书执行续期。
+// 返回续期成功的域名列表。已注册但未签发证书的域名会被跳过。
+func RenewAcmeCertificates() ([]string, error) {
+	entries, err := os.ReadDir(acmeBaseDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	var renewed []string
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+		domain := entry.Name()
+		domainDir := filepath.Join(acmeBaseDir, domain)
+		certFile := filepath.Join(domainDir, "fullchain.cer")
+		keyFile := filepath.Join(domainDir, "private.key")
+		regFile := filepath.Join(domainDir, "account.json")
+		// 必须同时存在证书、私钥和注册信息才尝试续期
+		if !fileExists(certFile) || !fileExists(keyFile) || !fileExists(regFile) {
+			continue
+		}
+		needRenew, err := shouldRenewCert(certFile)
+		if err != nil {
+			logger.Warning("acme renew: check", domain, "expiry failed:", err)
+			continue
+		}
+		if !needRenew {
+			continue
+		}
+		if err := renewAcmeDomain(domainDir, domain); err != nil {
+			logger.Warning("acme renew:", domain, "failed:", err)
+			continue
+		}
+		renewed = append(renewed, domain)
+	}
+	return renewed, nil
+}
+
+func fileExists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
+}
+
+// shouldRenewCert 解析证书，剩余有效期小于 30 天则需续期。
+func shouldRenewCert(certFile string) (bool, error) {
+	data, err := os.ReadFile(certFile)
+	if err != nil {
+		return false, err
+	}
+	cert, err := certcrypto.ParsePEMCertificate(data)
+	if err != nil {
+		return false, err
+	}
+	remaining := time.Until(cert.NotAfter)
+	return remaining < 30*24*time.Hour, nil
+}
+
+func renewAcmeDomain(domainDir, domain string) error {
+	// 从 account.json 读取 email
+	regFile := filepath.Join(domainDir, "account.json")
+	regData, err := os.ReadFile(regFile)
+	if err != nil {
+		return err
+	}
+	var reg struct {
+		Email string `json:"email"`
+	}
+	if err := json.Unmarshal(regData, &reg); err != nil {
+		return err
+	}
+	user, err := loadOrCreateAcmeUser(domainDir, reg.Email)
+	if err != nil {
+		return err
+	}
+	config := lego.NewConfig(user)
+	config.CADirURL = lego.LEDirectoryProduction
+	config.Certificate.KeyType = certcrypto.RSA2048
+	client, err := lego.NewClient(config)
+	if err != nil {
+		return err
+	}
+	if err := client.Challenge.SetHTTP01Provider(http01.NewProviderServer("", "80")); err != nil {
+		return err
+	}
+
+	certFile := filepath.Join(domainDir, "fullchain.cer")
+	keyFile := filepath.Join(domainDir, "private.key")
+	resource, err := client.Certificate.Renew(certificate.Resource{
+		Domain:      domain,
+		Certificate: mustReadFile(certFile),
+		PrivateKey:  mustReadFile(keyFile),
+	}, false, false, "")
+	if err != nil {
+		return fmt.Errorf("ACME 续期失败: %w", err)
+	}
+	if err := os.WriteFile(certFile, resource.Certificate, 0640); err != nil {
+		return err
+	}
+	if err := os.WriteFile(keyFile, resource.PrivateKey, 0640); err != nil {
+		return err
+	}
+	if err := setAcmeCertificatePermissions(filepath.Dir(acmeBaseDir), acmeBaseDir, domainDir, certFile, keyFile); err != nil {
+		return err
+	}
+	return nil
+}
+
+func mustReadFile(path string) []byte {
+	data, _ := os.ReadFile(path)
+	return data
 }

@@ -424,6 +424,17 @@ func (s *Server) startTask() {
 	s.cron.AddFunc("@every 5m", controller.CleanupLoginFailures)
 	// 每 10 分钟记录一次总流量快照，用于趋势图
 	s.cron.AddJob("@every 10m", job.NewTrafficHistoryJob())
+	// 每天 3:30 检查 ACME 证书是否需要续期（剩余 <30 天则续期）
+	s.cron.AddFunc("0 30 3 * * *", func() {
+		renewed, err := controller.RenewAcmeCertificates()
+		if err != nil {
+			logger.Warning("acme renew job failed:", err)
+		}
+		if len(renewed) > 0 {
+			logger.Info("acme renewed domains:", renewed)
+			s.xrayService.SetToNeedRestart()
+		}
+	})
 	// 每一天提示一次流量情况,上海时间8点30
 	var entry cron.EntryID
 	isTgbotenabled, err := s.settingService.GetTgbotenabled()

@@ -12,6 +12,7 @@ import (
 	"io/fs"
 	"net/http"
 	"os"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"strings"
@@ -265,8 +266,11 @@ func (s *ServerService) downloadXRay(version string) (string, error) {
 		return "", errors.New("download xray package is too large")
 	}
 
-	os.Remove(fileName)
-	file, err := os.OpenFile(fileName, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
+	// 使用临时目录存放下载的 zip，避免 systemd ProtectSystem=full 导致 cwd 只读。
+	tmpDir := os.TempDir()
+	zipPath := filepath.Join(tmpDir, fileName)
+	os.Remove(zipPath)
+	file, err := os.OpenFile(zipPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
 	if err != nil {
 		return "", err
 	}
@@ -279,12 +283,12 @@ func (s *ServerService) downloadXRay(version string) (string, error) {
 	if written > maxXrayDownloadSize {
 		return "", errors.New("download xray package is too large")
 	}
-	if err := verifyXrayDigest(version, fileName); err != nil {
-		os.Remove(fileName)
+	if err := verifyXrayDigest(version, zipPath); err != nil {
+		os.Remove(zipPath)
 		return "", err
 	}
 
-	return fileName, nil
+	return zipPath, nil
 }
 
 func verifyXrayDigest(version string, fileName string) error {

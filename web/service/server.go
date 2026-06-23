@@ -284,12 +284,13 @@ func (s *ServerService) downloadXRay(version string) (string, error) {
 		return "", errors.New("download xray package is too large")
 	}
 	if err := verifyXrayDigest(version, zipPath); err != nil {
-		os.Remove(zipPath)
-		// dgst 文件不存在时跳过校验（旧版本 release 可能没有 .dgst）
-		if !strings.Contains(err.Error(), "status 404") {
+		// dgst 文件不存在时跳过校验（旧版本 release 可能没有 .dgst），保留已下载的 zip
+		if strings.Contains(err.Error(), "status 404") {
+			logger.Warning("xray digest not available for", version, ", skipping verification")
+		} else {
+			os.Remove(zipPath)
 			return "", err
 		}
-		logger.Warning("xray digest not available for", version, ", skipping verification")
 	}
 
 	return zipPath, nil

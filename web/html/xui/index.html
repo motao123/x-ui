@@ -20,16 +20,39 @@
         align-items: center;
         justify-content: space-between;
     }
+    .stat-metric-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        min-height: 54px;
+        align-items: center;
+    }
+    .stat-metric {
+        display: grid;
+        grid-template-columns: auto minmax(110px, 1fr);
+        align-items: center;
+        column-gap: 8px;
+    }
     .stat-label {
         font-size: 13px;
         color: rgba(0,0,0,0.45);
+        white-space: nowrap;
     }
     .stat-value {
+        display: block;
+        min-width: 110px;
         font-size: 16px;
         font-weight: 500;
         color: rgba(0,0,0,0.85);
         font-variant-numeric: tabular-nums;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
         text-align: right;
+        white-space: nowrap;
+    }
+    .stat-card-title {
+        font-size: 12px;
+        color: rgba(0,0,0,0.35);
+        margin-top: 4px;
     }
     .stat-up {
         color: #52c41a;
@@ -144,40 +167,32 @@
                     </a-col>
                     <a-col :sm="24" :md="12">
                         <a-card class="stat-card">
-                            <a-row :gutter="16">
-                                <a-col :span="12">
-                                    <div class="stat-row">
-                                        <span class="stat-label"><a-icon type="arrow-up" class="stat-up" /> 上传</span>
-                                        <span class="stat-value stat-up">[[ sizeFormat(status.netIO.up) ]]/s</span>
-                                    </div>
-                                </a-col>
-                                <a-col :span="12">
-                                    <div class="stat-row">
-                                        <span class="stat-label"><a-icon type="arrow-down" class="stat-down" /> 下载</span>
-                                        <span class="stat-value stat-down">[[ sizeFormat(status.netIO.down) ]]/s</span>
-                                    </div>
-                                </a-col>
-                            </a-row>
-                            <div style="font-size: 12px; color: rgba(0,0,0,0.35); margin-top: 4px;">网络速度</div>
+                            <div class="stat-metric-grid">
+                                <div class="stat-metric">
+                                    <span class="stat-label"><a-icon type="arrow-up" class="stat-up" /> 上传</span>
+                                    <span class="stat-value stat-up">[[ sizeFormat(status.netIO.up) ]]/s</span>
+                                </div>
+                                <div class="stat-metric">
+                                    <span class="stat-label"><a-icon type="arrow-down" class="stat-down" /> 下载</span>
+                                    <span class="stat-value stat-down">[[ sizeFormat(status.netIO.down) ]]/s</span>
+                                </div>
+                            </div>
+                            <div class="stat-card-title">网络速度</div>
                         </a-card>
                     </a-col>
                     <a-col :sm="24" :md="12">
                         <a-card class="stat-card">
-                            <a-row :gutter="16">
-                                <a-col :span="12">
-                                    <div class="stat-row">
-                                        <span class="stat-label"><a-icon type="cloud-upload" class="stat-up" /> 上传</span>
-                                        <span class="stat-value stat-up">[[ sizeFormat(status.netTraffic.sent) ]]</span>
-                                    </div>
-                                </a-col>
-                                <a-col :span="12">
-                                    <div class="stat-row">
-                                        <span class="stat-label"><a-icon type="cloud-download" class="stat-down" /> 下载</span>
-                                        <span class="stat-value stat-down">[[ sizeFormat(status.netTraffic.recv) ]]</span>
-                                    </div>
-                                </a-col>
-                            </a-row>
-                            <div style="font-size: 12px; color: rgba(0,0,0,0.35); margin-top: 4px;">网络流量</div>
+                            <div class="stat-metric-grid">
+                                <div class="stat-metric">
+                                    <span class="stat-label"><a-icon type="cloud-upload" class="stat-up" /> 上传</span>
+                                    <span class="stat-value stat-up">[[ sizeFormat(status.netTraffic.sent) ]]</span>
+                                </div>
+                                <div class="stat-metric">
+                                    <span class="stat-label"><a-icon type="cloud-download" class="stat-down" /> 下载</span>
+                                    <span class="stat-value stat-down">[[ sizeFormat(status.netTraffic.recv) ]]</span>
+                                </div>
+                            </div>
+                            <div class="stat-card-title">网络流量</div>
                         </a-card>
                     </a-col>
                 </a-row>

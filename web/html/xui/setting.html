@@ -71,15 +71,14 @@
                         <a-tab-pane key="3" tab="xray 相关设置">
                             <a-list item-layout="horizontal" style="background: white">
                                 <a-list-item>
-                                    <a-list-item-meta title="DNS 快捷配置" description="一键设置常用 DNS，将自动写入 xray 配置模板的 dns 字段">
-                                        <div slot="extra" style="display:flex;gap:8px;flex-wrap:wrap;">
-                                            <a-button size="small" @click="setDNS('1.1.1.1')">Cloudflare 1.1.1.1</a-button>
-                                            <a-button size="small" @click="setDNS('8.8.8.8')">Google 8.8.8.8</a-button>
-                                            <a-button size="small" @click="setDNS('https://1.1.1.1/dns-query')">Cloudflare DoH</a-button>
-                                            <a-button size="small" @click="setDNS('https://8.8.8.8/dns-query')">Google DoH</a-button>
-                                            <a-button size="small" type="danger" @click="removeDNS">清除 DNS</a-button>
-                                        </div>
-                                    </a-list-item-meta>
+                                    <a-list-item-meta title="DNS 快捷配置" description="一键设置常用 DNS，将自动写入 xray 配置模板的 dns 字段"></a-list-item-meta>
+                                    <template slot="actions">
+                                        <a-button size="small" @click="setDNS('1.1.1.1')">Cloudflare 1.1.1.1</a-button>
+                                        <a-button size="small" @click="setDNS('8.8.8.8')">Google 8.8.8.8</a-button>
+                                        <a-button size="small" @click="setDNS('https://1.1.1.1/dns-query')">Cloudflare DoH</a-button>
+                                        <a-button size="small" @click="setDNS('https://8.8.8.8/dns-query')">Google DoH</a-button>
+                                        <a-button size="small" type="danger" @click="removeDNS">清除 DNS</a-button>
+                                    </template>
                                 </a-list-item>
                                 <setting-list-item type="textarea" title="xray 配置模版" desc="以该模版为基础生成最终的 xray 配置文件，重启面板生效" v-model="allSetting.xrayTemplateConfig"></setting-list-item>
                             </a-list>

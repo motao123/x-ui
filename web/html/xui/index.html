@@ -20,23 +20,28 @@
         align-items: center;
         justify-content: space-between;
     }
-    .stat-metric-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 16px;
-        min-height: 58px;
-        align-items: center;
+    .network-table {
+        width: 100%;
+        table-layout: fixed;
+        border-collapse: collapse;
     }
-    .stat-metric {
-        display: flex;
+    .network-table td {
+        padding: 0;
+        vertical-align: middle;
+    }
+    .network-table td:last-child {
+        text-align: right;
+    }
+    .network-cell {
+        display: inline-flex;
         flex-direction: column;
         gap: 4px;
     }
-    .stat-metric:first-child {
-        align-items: flex-start;
-    }
-    .stat-metric:last-child {
+    .network-table td:last-child .network-cell {
         align-items: flex-end;
+    }
+    .network-table td:first-child .network-cell {
+        align-items: flex-start;
     }
     .stat-label {
         font-size: 13px;
@@ -64,6 +69,11 @@
     }
     .stat-down {
         color: #1890ff;
+    }
+    .version-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
     }
     .xray-status-bar {
         display: flex;
@@ -172,31 +182,43 @@
                     </a-col>
                     <a-col :sm="24" :md="12">
                         <a-card class="stat-card">
-                            <div class="stat-metric-grid">
-                                <div class="stat-metric">
-                                    <span class="stat-label"><a-icon type="arrow-up" class="stat-up" /> 上传</span>
-                                    <span class="stat-value stat-up">[[ sizeFormat(status.netIO.up) ]]/s</span>
-                                </div>
-                                <div class="stat-metric">
-                                    <span class="stat-label"><a-icon type="arrow-down" class="stat-down" /> 下载</span>
-                                    <span class="stat-value stat-down">[[ sizeFormat(status.netIO.down) ]]/s</span>
-                                </div>
-                            </div>
+                            <table class="network-table">
+                                <tr>
+                                    <td>
+                                        <span class="network-cell">
+                                            <span class="stat-label"><a-icon type="arrow-up" class="stat-up" /> 上传</span>
+                                            <span class="stat-value stat-up">[[ sizeFormat(status.netIO.up) ]]/s</span>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="network-cell">
+                                            <span class="stat-label"><a-icon type="arrow-down" class="stat-down" /> 下载</span>
+                                            <span class="stat-value stat-down">[[ sizeFormat(status.netIO.down) ]]/s</span>
+                                        </span>
+                                    </td>
+                                </tr>
+                            </table>
                             <div class="stat-card-title">网络速度</div>
                         </a-card>
                     </a-col>
                     <a-col :sm="24" :md="12">
                         <a-card class="stat-card">
-                            <div class="stat-metric-grid">
-                                <div class="stat-metric">
-                                    <span class="stat-label"><a-icon type="cloud-upload" class="stat-up" /> 上传</span>
-                                    <span class="stat-value stat-up">[[ sizeFormat(status.netTraffic.sent) ]]</span>
-                                </div>
-                                <div class="stat-metric">
-                                    <span class="stat-label"><a-icon type="cloud-download" class="stat-down" /> 下载</span>
-                                    <span class="stat-value stat-down">[[ sizeFormat(status.netTraffic.recv) ]]</span>
-                                </div>
-                            </div>
+                            <table class="network-table">
+                                <tr>
+                                    <td>
+                                        <span class="network-cell">
+                                            <span class="stat-label"><a-icon type="cloud-upload" class="stat-up" /> 上传</span>
+                                            <span class="stat-value stat-up">[[ sizeFormat(status.netTraffic.sent) ]]</span>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="network-cell">
+                                            <span class="stat-label"><a-icon type="cloud-download" class="stat-down" /> 下载</span>
+                                            <span class="stat-value stat-down">[[ sizeFormat(status.netTraffic.recv) ]]</span>
+                                        </span>
+                                    </td>
+                                </tr>
+                            </table>
                             <div class="stat-card-title">网络流量</div>
                         </a-card>
                     </a-col>
@@ -213,13 +235,15 @@
             已获取 [[ versionModal.versions.length ]] 个版本 [[ versionModal.loadedAt ? '，更新时间：' + versionModal.loadedAt : '' ]]
         </div>
         <a-empty v-if="versionModal.versions.length === 0" description="暂无可用版本，请稍后重试或检查服务器 GitHub 访问" />
-        <template v-for="version, index in versionModal.versions">
-            <a-tag :color="version === status.xray.version ? '#1890ff' : (index % 2 == 0 ? 'blue' : 'green')"
-                   style="margin: 5px; cursor: pointer;" @click="switchV2rayVersion(version)">
+        <div v-if="versionModal.versions.length > 0" class="version-list">
+            <a-button v-for="version in versionModal.versions" :key="version"
+                      size="small"
+                      :type="version === status.xray.version ? 'primary' : 'default'"
+                      @click="switchV2rayVersion(version)">
                 [[ version ]]
                 <a-icon v-if="version === status.xray.version" type="check-circle" />
-            </a-tag>
-        </template>
+            </a-button>
+        </div>
     </a-modal>
 </a-layout>
 {{template "js" .}}

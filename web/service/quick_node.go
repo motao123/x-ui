@@ -45,7 +45,7 @@ type QuickRealityResult struct {
 	ShortId         string `json:"shortId"`
 }
 
-func (s *QuickNodeService) CreateVLESSReality(req *QuickRealityRequest) (*QuickRealityResult, error) {
+func (s *QuickNodeService) CreateVLESSReality(req *QuickRealityRequest, ownerUserId int) (*QuickRealityResult, error) {
 	req.Remark = strings.TrimSpace(req.Remark)
 	if req.Remark == "" {
 		req.Remark = "VLESS Reality"
@@ -100,6 +100,7 @@ func (s *QuickNodeService) CreateVLESSReality(req *QuickRealityRequest) (*QuickR
 	settingsJSON, _ := json.Marshal(settings)
 	streamJSON, _ := json.Marshal(stream)
 	inbound := &model.Inbound{
+		UserId:         ownerUserId,
 		Up:             0,
 		Down:           0,
 		Total:          0,

@@ -22,6 +22,8 @@
                         @search="applyAcmeCert"></a-input-search>
     </a-form-item>
 </a-form>
+<a-alert v-if="inbound.protocol === Protocols.TROJAN && inbound.tls" type="warning" show-icon style="margin-bottom: 12px"
+         message="Xray 26.3.27 已移除 allowInsecure；Trojan TLS 客户端需要受信任证书或证书 pinning"/>
 
 <!-- reality settings -->
 <a-form v-if="inbound.reality" layout="inline">

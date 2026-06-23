@@ -21,6 +21,32 @@ func TestNormalizedSettingsRemovesFlowWithoutXTLSOrReality(t *testing.T) {
 	}
 }
 
+func TestNormalizedSettingsRemovesTrojanFlowWithoutXTLSOrReality(t *testing.T) {
+	inbound := &Inbound{
+		Protocol:       Trojan,
+		Settings:       `{"clients":[{"password":"pass","flow":"xtls-rprx-direct"}]}`,
+		StreamSettings: `{"network":"tcp","security":"tls"}`,
+	}
+
+	settings := inbound.normalizedSettings(inbound.StreamSettings)
+	if strings.Contains(settings, "flow") {
+		t.Fatalf("flow should be removed from Trojan TLS settings: %s", settings)
+	}
+}
+
+func TestNormalizedSettingsKeepsXTLSFlow(t *testing.T) {
+	inbound := &Inbound{
+		Protocol:       Trojan,
+		Settings:       `{"clients":[{"password":"pass","flow":"xtls-rprx-vision"}]}`,
+		StreamSettings: `{"network":"tcp","security":"xtls"}`,
+	}
+
+	settings := inbound.normalizedSettings(inbound.StreamSettings)
+	if !strings.Contains(settings, "xtls-rprx-vision") {
+		t.Fatalf("XTLS flow should be preserved: %s", settings)
+	}
+}
+
 func TestNormalizedSettingsKeepsRealityFlow(t *testing.T) {
 	inbound := &Inbound{
 		Protocol:       VLESS,

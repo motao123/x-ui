@@ -4,10 +4,11 @@
         <a-input v-model.trim="inbound.settings.vlesses[0].id"></a-input>
     </a-form-item>
     <a-form-item v-if="inbound.xtls || inbound.reality" label="flow">
-        <a-select v-model="inbound.settings.vlesses[0].flow" style="width: 150px">
+        <a-select v-model="inbound.settings.vlesses[0].flow" @change="inbound.normalizeFlow" style="width: 150px">
             <a-select-option value="">无</a-select-option>
             <a-select-option v-for="key in FLOW_CONTROL" :value="key">[[ key ]]</a-select-option>
         </a-select>
+        <div style="color: rgba(0, 0, 0, 0.45); font-size: 12px; line-height: 20px;">Reality 推荐 xtls-rprx-vision；普通/TLS 请留空</div>
     </a-form-item>
 </a-form>
 

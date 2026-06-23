@@ -795,8 +795,28 @@ class Inbound extends XrayCommonClass {
         if (!this.stream) {
             return;
         }
-        if (this.protocol === Protocols.TROJAN) {
+        if (this.protocol === Protocols.TROJAN && this.stream.security === 'none') {
             this.tls = true;
+        }
+        this.normalizeFlow();
+    }
+
+    hasFlowSettings() {
+        return this.protocol === Protocols.VLESS || this.protocol === Protocols.TROJAN;
+    }
+
+    normalizeFlow() {
+        if (!this.hasFlowSettings()) {
+            return;
+        }
+        if (this.reality) {
+            if (ObjectUtil.isEmpty(this.flow) || this.flow === FLOW_CONTROL.DIRECT || this.flow === FLOW_CONTROL.ORIGIN) {
+                this.flow = FLOW_CONTROL.VISION;
+            }
+            return;
+        }
+        if (!this.xtls) {
+            this.flow = '';
         }
     }
 
@@ -830,6 +850,7 @@ class Inbound extends XrayCommonClass {
         } else {
             this.stream.security = 'none';
         }
+        this.normalizeFlow();
     }
 
     get xtls() {
@@ -846,6 +867,7 @@ class Inbound extends XrayCommonClass {
         } else {
             this.stream.security = 'none';
         }
+        this.normalizeFlow();
     }
 
     get reality() {
@@ -862,6 +884,7 @@ class Inbound extends XrayCommonClass {
         } else {
             this.stream.security = 'none';
         }
+        this.normalizeFlow();
     }
 
     get network() {
@@ -870,6 +893,7 @@ class Inbound extends XrayCommonClass {
 
     set network(network) {
         this.stream.network = network;
+        this.normalizeFlow();
     }
 
     get isTcp() {
@@ -925,6 +949,17 @@ class Inbound extends XrayCommonClass {
                 return this.settings.clients[0].flow;
             default:
                 return "";
+        }
+    }
+
+    set flow(flow) {
+        switch (this.protocol) {
+            case Protocols.VLESS:
+                this.settings.vlesses[0].flow = flow;
+                break;
+            case Protocols.TROJAN:
+                this.settings.clients[0].flow = flow;
+                break;
         }
     }
 
@@ -1216,6 +1251,7 @@ class Inbound extends XrayCommonClass {
     }
 
     genVLESSLink(address = '', remark='') {
+        this.normalizeFlow();
         const settings = this.settings;
         const uuid = settings.vlesses[0].id;
         const port = this.port;
@@ -1296,8 +1332,11 @@ class Inbound extends XrayCommonClass {
             params.set("fp", reality.fingerprint || 'chrome');
         }
 
-        if (this.xtls) {
-            params.set("flow", this.settings.vlesses[0].flow);
+        if (this.xtls || this.reality) {
+            const flow = this.settings.vlesses[0].flow;
+            if (!ObjectUtil.isEmpty(flow)) {
+                params.set("flow", flow);
+            }
         }
 
         const link = `vless://${uuid}@${address}:${port}`;
@@ -1320,6 +1359,7 @@ class Inbound extends XrayCommonClass {
     }
 
     genTrojanLink(address='', remark='') {
+        this.normalizeFlow();
         let settings = this.settings;
         const link = `trojan://${encodeURIComponent(settings.clients[0].password)}@${address}:${this.port}`;
         const url = new URL(link);
@@ -1447,6 +1487,9 @@ class Inbound extends XrayCommonClass {
             }
             url.searchParams.set('fp', reality.fingerprint || 'chrome');
         }
+        if ((this.xtls || this.reality) && !ObjectUtil.isEmpty(this.flow)) {
+            url.searchParams.set('flow', this.flow);
+        }
         return url;
     }
 
@@ -1475,6 +1518,7 @@ class Inbound extends XrayCommonClass {
     }
 
     toJson() {
+        this.normalizeFlow();
         let streamSettings;
         if (this.canEnableStream() || this.protocol === Protocols.TROJAN) {
             streamSettings = this.stream.toJson();

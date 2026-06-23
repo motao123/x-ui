@@ -7,12 +7,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 	"x-ui/util/common"
 
@@ -93,10 +95,12 @@ type process struct {
 	version string
 	apiPort int
 
-	config  *Config
-	lines   *queue.Queue
-	exitErr error
-	done    chan error
+	config    *Config
+	lines     *queue.Queue
+	exitErr   error
+	done      chan error
+	apiConnMu sync.Mutex
+	apiConn   *grpc.ClientConn
 }
 
 func newProcess(config *Config) *process {
@@ -259,16 +263,44 @@ func (p *process) Start() (err error) {
 	case <-time.After(500 * time.Millisecond):
 	}
 
+	// 就绪探针：尝试连接 gRPC API 端口，确认 xray 已真正就绪，
+	// 避免慢启动机器上 500ms sleep 误判成功。
+	if err := p.waitAPIReady(3 * time.Second); err != nil {
+		return common.NewErrorf("xray 启动后 API 未就绪: %v", err)
+	}
+
 	p.refreshVersion()
 	p.refreshAPIPort()
 
 	return nil
 }
 
+// waitAPIReady 轮询 dial gRPC API 端口，直到连接成功或超时。
+func (p *process) waitAPIReady(timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		if p.apiPort == 0 {
+			p.refreshAPIPort()
+		}
+		if p.apiPort == 0 {
+			time.Sleep(100 * time.Millisecond)
+			continue
+		}
+		conn, err := net.DialTimeout("tcp", fmt.Sprintf("127.0.0.1:%v", p.apiPort), 500*time.Millisecond)
+		if err == nil {
+			conn.Close()
+			return nil
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	return errors.New("api port not ready")
+}
+
 func (p *process) Stop() error {
 	if !p.IsRunning() {
 		return errors.New("xray is not running")
 	}
+	p.closeAPIConn()
 	// 优雅关闭：先 SIGTERM，2秒后 SIGKILL
 	err := p.cmd.Process.Signal(os.Interrupt)
 	if err != nil {
@@ -346,15 +378,46 @@ func TestConfig(config *Config) error {
 	return nil
 }
 
-func (p *process) GetTraffic(reset bool) ([]*Traffic, error) {
+func (p *process) getAPIConn() (*grpc.ClientConn, error) {
 	if p.apiPort == 0 {
 		return nil, common.NewError("xray api port wrong:", p.apiPort)
 	}
-	conn, err := grpc.Dial(fmt.Sprintf("127.0.0.1:%v", p.apiPort), grpc.WithInsecure())
+	p.apiConnMu.Lock()
+	defer p.apiConnMu.Unlock()
+	if p.apiConn != nil {
+		return p.apiConn, nil
+	}
+	conn, err := grpc.Dial(fmt.Sprintf("127.0.0.1:%v", p.apiPort),
+		grpc.WithInsecure(),
+		grpc.WithBlock(),
+		grpc.WithTimeout(5*time.Second),
+	)
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Close()
+	p.apiConn = conn
+	return conn, nil
+}
+
+func (p *process) closeAPIConn() {
+	p.apiConnMu.Lock()
+	defer p.apiConnMu.Unlock()
+	if p.apiConn != nil {
+		p.apiConn.Close()
+		p.apiConn = nil
+	}
+}
+
+func (p *process) GetTraffic(reset bool) ([]*Traffic, error) {
+	conn, err := p.getAPIConn()
+	if err != nil {
+		// 连接失效，清理后重试一次
+		p.closeAPIConn()
+		conn, err = p.getAPIConn()
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	client := statsservice.NewStatsServiceClient(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
@@ -364,6 +427,8 @@ func (p *process) GetTraffic(reset bool) ([]*Traffic, error) {
 	}
 	resp, err := client.QueryStats(ctx, request)
 	if err != nil {
+		// RPC 失败可能是连接已断，清理以便下次重建
+		p.closeAPIConn()
 		return nil, err
 	}
 	tagTrafficMap := map[string]*Traffic{}

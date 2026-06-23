@@ -163,3 +163,10 @@ func cleanupLoginFailures(now time.Time) {
 		}
 	}
 }
+
+// CleanupLoginFailures 供定时任务调用，清理过期的登录失败记录。
+func CleanupLoginFailures() {
+	loginFailures.Lock()
+	defer loginFailures.Unlock()
+	cleanupLoginFailures(time.Now())
+}

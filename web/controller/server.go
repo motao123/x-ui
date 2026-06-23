@@ -221,8 +221,8 @@ func (a *ServerController) genX25519(c *gin.Context) {
 	}
 
 	result := map[string]string{
-		"Private key": base64.RawStdEncoding.EncodeToString(privateKey[:]),
-		"Public key":  base64.RawStdEncoding.EncodeToString(publicKey),
+		"Private key": base64.RawURLEncoding.EncodeToString(privateKey[:]),
+		"Public key":  base64.RawURLEncoding.EncodeToString(publicKey),
 	}
 	jsonObj(c, result, nil)
 }

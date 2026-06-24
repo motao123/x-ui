@@ -103,6 +103,10 @@ type Certificate struct {
 	CertFile  string `json:"certFile" form:"certFile" gorm:"not null"`
 	KeyFile   string `json:"keyFile" form:"keyFile" gorm:"not null"`
 	Source    string `json:"source" form:"source"`
+	Mode      string `json:"mode" form:"mode"`
+	AcmeId    int    `json:"acmeId" form:"acmeId" gorm:"index"`
+	DnsId     int    `json:"dnsId" form:"dnsId" gorm:"index"`
+	AutoRenew bool   `json:"autoRenew" form:"autoRenew"`
 	NotBefore int64  `json:"notBefore"`
 	NotAfter  int64  `json:"notAfter"`
 	CreatedAt int64  `json:"createdAt"`
@@ -110,6 +114,30 @@ type Certificate struct {
 }
 
 func (Certificate) TableName() string { return "certificates" }
+
+type AcmeAccount struct {
+	Id         int    `json:"id" form:"id" gorm:"primaryKey;autoIncrement"`
+	Name       string `json:"name" form:"name" gorm:"not null"`
+	Email      string `json:"email" form:"email" gorm:"not null"`
+	Provider   string `json:"provider" form:"provider"`
+	PrivateKey string `json:"-" form:"privateKey"`
+	CreatedAt  int64  `json:"createdAt"`
+	UpdatedAt  int64  `json:"updatedAt"`
+}
+
+func (AcmeAccount) TableName() string { return "acme_accounts" }
+
+type DnsAccount struct {
+	Id        int    `json:"id" form:"id" gorm:"primaryKey;autoIncrement"`
+	Name      string `json:"name" form:"name" gorm:"not null"`
+	Provider  string `json:"provider" form:"provider" gorm:"not null"`
+	Key       string `json:"key" form:"key"`
+	Secret    string `json:"secret" form:"secret"`
+	CreatedAt int64  `json:"createdAt"`
+	UpdatedAt int64  `json:"updatedAt"`
+}
+
+func (DnsAccount) TableName() string { return "dns_accounts" }
 
 type RouteRule struct {
 	Id          int    `json:"id" form:"id" gorm:"primaryKey;autoIncrement"`
@@ -147,3 +175,17 @@ type Endpoint struct {
 }
 
 func (Endpoint) TableName() string { return "endpoints" }
+
+type WarpAccount struct {
+	Id          int    `json:"id" gorm:"primaryKey;autoIncrement"`
+	AccessToken string `json:"-"`
+	DeviceId    string `json:"deviceId"`
+	LicenseKey  string `json:"licenseKey"`
+	PublicKey   string `json:"publicKey"`
+	PrivateKey  string `json:"-"`
+	AutoUpdate  int    `json:"autoUpdate"`
+	CreatedAt   int64  `json:"createdAt"`
+	UpdatedAt   int64  `json:"updatedAt"`
+}
+
+func (WarpAccount) TableName() string { return "warp_accounts" }

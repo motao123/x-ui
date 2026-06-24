@@ -5,6 +5,7 @@
     @media (min-width: 769px) { .ant-layout-content { margin: 24px 16px; } }
     .toolbar { margin-bottom: 16px; display: flex; gap: 8px; flex-wrap: wrap; }
     .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
+    .sub-card { margin-top: 16px; }
 </style>
 <body>
 <a-layout id="app" v-cloak>
@@ -14,9 +15,12 @@
             <a-card title="证书管理">
                 <div class="toolbar">
                     <a-button type="primary" icon="upload" @click="openUpload">上传证书</a-button>
+                    <a-button icon="safety-certificate" @click="openApply">申请证书</a-button>
+                    <a-button icon="user" @click="openAcme()">新增 ACME</a-button>
+                    <a-button icon="global" @click="openDns()">新增 DNS</a-button>
                     <a-button icon="reload" @click="loadCertificates">刷新</a-button>
                 </div>
-                <a-alert type="info" show-icon style="margin-bottom: 16px" message="部署到面板后需要重启面板才会启用 HTTPS。" />
+                <a-alert type="info" show-icon style="margin-bottom: 16px" message="支持手动上传、ACME HTTP-01 申请、ACME/DNS 账号管理；申请过程可在任务中心查看。"></a-alert>
                 <a-table :columns="columns" :data-source="certificates" :row-key="record => record.id" :pagination="false" size="middle">
                     <template slot="validity" slot-scope="text, record">
                         [[ record.notAfter > 0 ? moment(record.notAfter * 1000).format('YYYY-MM-DD HH:mm:ss') : '-' ]]
@@ -32,33 +36,77 @@
                     </template>
                 </a-table>
             </a-card>
+            <a-card class="sub-card" title="ACME 账号">
+                <a-table :columns="acmeColumns" :data-source="acmeAccounts" :row-key="record => record.id" :pagination="false" size="small">
+                    <template slot="action" slot-scope="text, record">
+                        <a-button size="small" @click="openAcme(record)">编辑</a-button>
+                        <a-button size="small" type="danger" @click="deleteAcme(record)">删除</a-button>
+                    </template>
+                </a-table>
+            </a-card>
+            <a-card class="sub-card" title="DNS 账号">
+                <a-table :columns="dnsColumns" :data-source="dnsAccounts" :row-key="record => record.id" :pagination="false" size="small">
+                    <template slot="action" slot-scope="text, record">
+                        <a-button size="small" @click="openDns(record)">编辑</a-button>
+                        <a-button size="small" type="danger" @click="deleteDns(record)">删除</a-button>
+                    </template>
+                </a-table>
+            </a-card>
         </a-layout-content>
     </a-layout>
 
     <a-modal v-model="uploadModal.visible" title="上传证书" @ok="uploadCertificate" :confirm-loading="uploadModal.loading" ok-text="保存" cancel-text="取消" width="720px">
         <a-form layout="vertical">
             <a-form-item label="名称">
-                <a-input v-model.trim="uploadModal.form.name" placeholder="example-com" />
+                <a-input v-model.trim="uploadModal.form.name" placeholder="example-com"></a-input>
             </a-form-item>
             <a-form-item label="域名">
-                <a-input v-model.trim="uploadModal.form.domain" placeholder="example.com" />
+                <a-input v-model.trim="uploadModal.form.domain" placeholder="example.com"></a-input>
             </a-form-item>
             <a-form-item label="证书 PEM">
-                <a-input type="textarea" :rows="8" v-model="uploadModal.form.certPem" class="mono" />
+                <a-input type="textarea" :rows="8" v-model="uploadModal.form.certPem" class="mono"></a-input>
             </a-form-item>
             <a-form-item label="私钥 PEM">
-                <a-input type="textarea" :rows="8" v-model="uploadModal.form.keyPem" class="mono" />
+                <a-input type="textarea" :rows="8" v-model="uploadModal.form.keyPem" class="mono"></a-input>
             </a-form-item>
+        </a-form>
+    </a-modal>
+
+    <a-modal v-model="applyModal.visible" title="申请证书" @ok="applyCertificate" :confirm-loading="applyModal.loading" ok-text="开始申请" cancel-text="取消" width="720px">
+        <a-form layout="vertical">
+            <a-form-item label="名称"><a-input v-model.trim="applyModal.form.name" placeholder="example-com"></a-input></a-form-item>
+            <a-form-item label="域名"><a-input v-model.trim="applyModal.form.domain" placeholder="example.com"></a-input></a-form-item>
+            <a-form-item label="申请方式"><a-select v-model="applyModal.form.mode"><a-select-option value="http">HTTP-01</a-select-option><a-select-option value="dns">DNS-01（账号管理已支持，申请暂用 HTTP-01）</a-select-option></a-select></a-form-item>
+            <a-form-item label="ACME 账号"><a-select v-model="applyModal.form.acmeId" placeholder="请选择 ACME 账号"><a-select-option v-for="item in acmeAccounts" :key="item.id" :value="item.id">[[ item.name ]] ([[ item.email ]])</a-select-option></a-select></a-form-item>
+            <a-form-item v-if="applyModal.form.mode === 'dns'" label="DNS 账号"><a-select v-model="applyModal.form.dnsId" placeholder="请选择 DNS 账号"><a-select-option v-for="item in dnsAccounts" :key="item.id" :value="item.id">[[ item.name ]] ([[ item.provider ]])</a-select-option></a-select></a-form-item>
+            <a-form-item label="自动续签"><a-switch v-model="applyModal.form.autoRenew" checked-children="启用" un-checked-children="禁用"></a-switch></a-form-item>
+        </a-form>
+    </a-modal>
+
+    <a-modal v-model="acmeModal.visible" :title="acmeModal.form.id ? '编辑 ACME 账号' : '新增 ACME 账号'" @ok="saveAcme" :confirm-loading="acmeModal.loading" ok-text="保存" cancel-text="取消">
+        <a-form layout="vertical">
+            <a-form-item label="名称"><a-input v-model.trim="acmeModal.form.name" placeholder="letsencrypt-main"></a-input></a-form-item>
+            <a-form-item label="邮箱"><a-input v-model.trim="acmeModal.form.email" placeholder="admin@example.com"></a-input></a-form-item>
+            <a-form-item label="服务商"><a-select v-model="acmeModal.form.provider"><a-select-option value="letsencrypt">Let's Encrypt</a-select-option><a-select-option value="zerossl">ZeroSSL</a-select-option></a-select></a-form-item>
+        </a-form>
+    </a-modal>
+
+    <a-modal v-model="dnsModal.visible" :title="dnsModal.form.id ? '编辑 DNS 账号' : '新增 DNS 账号'" @ok="saveDns" :confirm-loading="dnsModal.loading" ok-text="保存" cancel-text="取消">
+        <a-form layout="vertical">
+            <a-form-item label="名称"><a-input v-model.trim="dnsModal.form.name" placeholder="cloudflare-main"></a-input></a-form-item>
+            <a-form-item label="服务商"><a-select v-model="dnsModal.form.provider"><a-select-option value="cloudflare">Cloudflare</a-select-option><a-select-option value="aliyun">阿里云</a-select-option></a-select></a-form-item>
+            <a-form-item label="Key / Email"><a-input v-model.trim="dnsModal.form.key" placeholder="Cloudflare 可填邮箱，阿里云填 AccessKeyId"></a-input></a-form-item>
+            <a-form-item label="Secret / Token"><a-input-password v-model.trim="dnsModal.form.secret"></a-input-password></a-form-item>
         </a-form>
     </a-modal>
 
     <a-modal v-model="contentModal.visible" title="证书内容" :footer="null" width="760px">
         <a-tabs>
             <a-tab-pane key="cert" tab="证书">
-                <a-input type="textarea" :rows="12" read-only v-model="contentModal.certPem" class="mono" />
+                <a-input type="textarea" :rows="12" read-only v-model="contentModal.certPem" class="mono"></a-input>
             </a-tab-pane>
             <a-tab-pane key="key" tab="私钥">
-                <a-input type="textarea" :rows="12" read-only v-model="contentModal.keyPem" class="mono" />
+                <a-input type="textarea" :rows="12" read-only v-model="contentModal.keyPem" class="mono"></a-input>
             </a-tab-pane>
         </a-tabs>
     </a-modal>
@@ -71,7 +119,12 @@
         data: {
             siderDrawer,
             certificates: [],
+            acmeAccounts: [],
+            dnsAccounts: [],
             uploadModal: { visible: false, loading: false, form: { name: '', domain: '', certPem: '', keyPem: '' } },
+            applyModal: { visible: false, loading: false, form: { name: '', domain: '', mode: 'http', acmeId: undefined, dnsId: undefined, autoRenew: true } },
+            acmeModal: { visible: false, loading: false, form: { id: 0, name: '', email: '', provider: 'letsencrypt' } },
+            dnsModal: { visible: false, loading: false, form: { id: 0, name: '', provider: 'cloudflare', key: '', secret: '' } },
             contentModal: { visible: false, certPem: '', keyPem: '' },
             columns: [
                 { title: '名称', dataIndex: 'name' },
@@ -81,12 +134,26 @@
                 { title: '路径', scopedSlots: { customRender: 'path' } },
                 { title: '操作', scopedSlots: { customRender: 'action' }, width: 260 },
             ],
+            acmeColumns: [
+                { title: '名称', dataIndex: 'name' },
+                { title: '邮箱', dataIndex: 'email' },
+                { title: '服务商', dataIndex: 'provider' },
+                { title: '操作', scopedSlots: { customRender: 'action' }, width: 150 },
+            ],
+            dnsColumns: [
+                { title: '名称', dataIndex: 'name' },
+                { title: '服务商', dataIndex: 'provider' },
+                { title: 'Key', dataIndex: 'key' },
+                { title: '操作', scopedSlots: { customRender: 'action' }, width: 150 },
+            ],
         },
         methods: {
             async loadCertificates() {
                 const msg = await HttpUtil.post('/xui/certificate/list');
                 if (msg.success) this.certificates = msg.obj || [];
             },
+            async loadAcme() { const msg = await HttpUtil.post('/xui/certificate/acme/list'); if (msg.success) this.acmeAccounts = msg.obj || []; },
+            async loadDns() { const msg = await HttpUtil.post('/xui/certificate/dns/list'); if (msg.success) this.dnsAccounts = msg.obj || []; },
             openUpload() {
                 this.uploadModal.form = { name: '', domain: '', certPem: '', keyPem: '' };
                 this.uploadModal.visible = true;
@@ -99,6 +166,46 @@
                     this.uploadModal.visible = false;
                     await this.loadCertificates();
                 }
+            },
+            openApply() {
+                this.applyModal.form = { name: '', domain: '', mode: 'http', acmeId: this.acmeAccounts[0] ? this.acmeAccounts[0].id : undefined, dnsId: this.dnsAccounts[0] ? this.dnsAccounts[0].id : undefined, autoRenew: true };
+                this.applyModal.visible = true;
+            },
+            async applyCertificate() {
+                this.applyModal.loading = true;
+                const msg = await HttpUtil.post('/xui/certificate/apply', this.applyModal.form);
+                this.applyModal.loading = false;
+                if (msg.success) {
+                    this.applyModal.visible = false;
+                    this.$message.success('证书申请任务已创建，请到任务中心查看日志');
+                    await this.loadCertificates();
+                }
+            },
+            openAcme(record) {
+                this.acmeModal.form = record ? ObjectUtil.clone(record) : { id: 0, name: '', email: '', provider: 'letsencrypt' };
+                this.acmeModal.visible = true;
+            },
+            async saveAcme() {
+                this.acmeModal.loading = true;
+                const msg = await HttpUtil.post('/xui/certificate/acme/save', this.acmeModal.form);
+                this.acmeModal.loading = false;
+                if (msg.success) { this.acmeModal.visible = false; await this.loadAcme(); }
+            },
+            deleteAcme(record) {
+                this.$confirm({ title: '删除 ACME 账号', content: '确定删除该 ACME 账号？', okType: 'danger', onOk: async () => { const msg = await HttpUtil.post(`/xui/certificate/acme/del/${record.id}`); if (msg.success) await this.loadAcme(); } });
+            },
+            openDns(record) {
+                this.dnsModal.form = record ? ObjectUtil.clone(record) : { id: 0, name: '', provider: 'cloudflare', key: '', secret: '' };
+                this.dnsModal.visible = true;
+            },
+            async saveDns() {
+                this.dnsModal.loading = true;
+                const msg = await HttpUtil.post('/xui/certificate/dns/save', this.dnsModal.form);
+                this.dnsModal.loading = false;
+                if (msg.success) { this.dnsModal.visible = false; await this.loadDns(); }
+            },
+            deleteDns(record) {
+                this.$confirm({ title: '删除 DNS 账号', content: '确定删除该 DNS 账号？', okType: 'danger', onOk: async () => { const msg = await HttpUtil.post(`/xui/certificate/dns/del/${record.id}`); if (msg.success) await this.loadDns(); } });
             },
             async showContent(record) {
                 const msg = await HttpUtil.post(`/xui/certificate/content/${record.id}`);
@@ -115,7 +222,7 @@
                 this.$confirm({ title: '删除证书', content: '确定删除该证书记录和文件？', okType: 'danger', onOk: async () => { const msg = await HttpUtil.post(`/xui/certificate/del/${record.id}`); if (msg.success) await this.loadCertificates(); } });
             },
         },
-        mounted() { this.loadCertificates(); },
+        mounted() { this.loadCertificates(); this.loadAcme(); this.loadDns(); },
     });
 </script>
 </body>

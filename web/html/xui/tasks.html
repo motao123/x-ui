@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+{{template "head" .}}
+<style>
+    @media (min-width: 769px) { .ant-layout-content { margin: 24px 16px; } }
+    .toolbar { margin-bottom: 16px; display: flex; gap: 8px; flex-wrap: wrap; }
+    .task-log { background: #111827; color: #d1d5db; border-radius: 6px; padding: 12px; min-height: 360px; max-height: 520px; overflow: auto; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; white-space: pre-wrap; }
+</style>
+<body>
+<a-layout id="app" v-cloak>
+    {{ template "commonSider" . }}
+    <a-layout id="content-layout">
+        <a-layout-content>
+            <a-card title="任务中心">
+                <div class="toolbar">
+                    <a-button icon="reload" @click="loadTasks">刷新</a-button>
+                </div>
+                <a-alert type="info" show-icon style="margin-bottom: 16px" message="WARP 注册、证书申请等长任务会记录在这里；任务日志保留最近 300 行。"></a-alert>
+                <a-table :columns="columns" :data-source="tasks" :row-key="record => record.id" :pagination="false" size="middle">
+                    <template slot="status" slot-scope="text, record">
+                        <a-tag :color="statusColor(record.status)">[[ statusText(record.status) ]]</a-tag>
+                    </template>
+                    <template slot="time" slot-scope="text, record">
+                        [[ record.updatedAt ? moment(record.updatedAt * 1000).format('YYYY-MM-DD HH:mm:ss') : '-' ]]
+                    </template>
+                    <template slot="action" slot-scope="text, record">
+                        <a-button size="small" @click="showTask(record)">查看日志</a-button>
+                    </template>
+                </a-table>
+            </a-card>
+        </a-layout-content>
+    </a-layout>
+    <a-modal v-model="logModal.visible" title="任务日志" :footer="null" width="860px">
+        <div class="task-log">[[ logModal.logs.join('\n') || '暂无日志' ]]</div>
+    </a-modal>
+</a-layout>
+{{template "js" .}}
+<script nonce="{{ .csp_nonce }}">
+    const app = new Vue({
+        delimiters: ['[[', ']]'],
+        el: '#app',
+        data: {
+            siderDrawer,
+            tasks: [],
+            logModal: { visible: false, logs: [] },
+            timer: null,
+            columns: [
+                { title: '任务', dataIndex: 'name' },
+                { title: '状态', scopedSlots: { customRender: 'status' }, width: 120 },
+                { title: '更新时间', scopedSlots: { customRender: 'time' }, width: 200 },
+                { title: '操作', scopedSlots: { customRender: 'action' }, width: 120 },
+            ],
+        },
+        methods: {
+            async loadTasks() {
+                const msg = await HttpUtil.post('/xui/task/list');
+                if (msg.success) this.tasks = msg.obj || [];
+            },
+            async showTask(record) {
+                const msg = await HttpUtil.post(`/xui/task/get/${record.id}`);
+                if (msg.success) {
+                    this.logModal.logs = msg.obj.logs || [];
+                    this.logModal.visible = true;
+                }
+            },
+            statusColor(status) { return status === 'success' ? 'green' : status === 'failed' ? 'red' : 'blue'; },
+            statusText(status) { return status === 'success' ? '成功' : status === 'failed' ? '失败' : '运行中'; },
+        },
+        mounted() { this.loadTasks(); this.timer = setInterval(this.loadTasks, 5000); },
+        beforeDestroy() { if (this.timer) clearInterval(this.timer); },
+    });
+</script>
+</body>
+</html>

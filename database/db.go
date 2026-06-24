@@ -82,7 +82,7 @@ func initProxySubscription() error {
 }
 
 func initCertificate() error {
-	return db.AutoMigrate(&model.Certificate{})
+	return db.AutoMigrate(&model.Certificate{}, &model.AcmeAccount{}, &model.DnsAccount{})
 }
 
 func initRouteRule() error {
@@ -90,7 +90,7 @@ func initRouteRule() error {
 }
 
 func initEndpoint() error {
-	return db.AutoMigrate(&model.Endpoint{})
+	return db.AutoMigrate(&model.Endpoint{}, &model.WarpAccount{})
 }
 
 func InitDB(dbPath string) error {

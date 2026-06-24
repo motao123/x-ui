@@ -15,6 +15,7 @@ type XUIController struct {
 	routeRuleController   *RouteRuleController
 	settingController     *SettingController
 	detectController      *DetectController
+	taskController        *TaskController
 }
 
 func NewXUIController(g *gin.RouterGroup) *XUIController {
@@ -35,6 +36,7 @@ func (a *XUIController) initRouter(g *gin.RouterGroup) {
 	g.GET("/routes", a.routes)
 	g.GET("/detect", a.detect)
 	g.GET("/logs", a.logs)
+	g.GET("/tasks", a.tasks)
 	g.GET("/setting", a.setting)
 
 	a.certificateController = NewCertificateController(g)
@@ -45,6 +47,7 @@ func (a *XUIController) initRouter(g *gin.RouterGroup) {
 	a.routeRuleController = NewRouteRuleController(g)
 	a.settingController = NewSettingController(g)
 	a.detectController = NewDetectController(g)
+	a.taskController = NewTaskController(g)
 }
 
 func (a *XUIController) index(c *gin.Context) {
@@ -78,6 +81,10 @@ func (a *XUIController) detect(c *gin.Context) {
 
 func (a *XUIController) logs(c *gin.Context) {
 	html(c, "logs.html", "面板日志", nil)
+}
+
+func (a *XUIController) tasks(c *gin.Context) {
+	html(c, "tasks.html", "任务中心", nil)
 }
 
 func (a *XUIController) setting(c *gin.Context) {

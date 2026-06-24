@@ -5,6 +5,10 @@
     @media (min-width: 769px) { .ant-layout-content { margin: 24px 16px; } }
     .toolbar { margin-bottom: 16px; display: flex; gap: 8px; flex-wrap: wrap; }
     .hint { color: rgba(0,0,0,0.45); font-size: 12px; }
+    .warp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px; }
+    .warp-item { border: 1px solid #f0f0f0; border-radius: 6px; padding: 12px; }
+    .warp-label { color: rgba(0,0,0,0.45); font-size: 12px; }
+    .warp-value { margin-top: 6px; word-break: break-all; }
 </style>
 <body>
 <a-layout id="app" v-cloak>
@@ -14,10 +18,20 @@
             <a-card title="Endpoint / WARP">
                 <div class="toolbar">
                     <a-button type="primary" icon="plus" @click="openModal()">新增端点</a-button>
+                    <a-button icon="cloud" @click="registerWarp">注册 WARP</a-button>
+                    <a-button icon="sync" @click="refreshWarp">刷新 WARP</a-button>
+                    <a-button icon="api" @click="createWarpEndpoint">生成 WARP 端点</a-button>
+                    <a-button icon="setting" @click="openWarpSettings">WARP 设置</a-button>
                     <a-button icon="reload" @click="loadEndpoints">刷新</a-button>
                     <a-button icon="check" @click="applyEndpoints">应用端点</a-button>
                 </div>
-                <a-alert type="info" show-icon style="margin-bottom: 16px" message="启用的端点会追加到当前 Xray 模板 outbounds 后面，可在路由规则中使用对应 outboundTag。WARP 可用 wireguard 类型配置。" />
+                <a-alert type="info" show-icon style="margin-bottom: 16px" message="启用的端点会追加到当前 Xray 模板 outbounds 后面，可在路由规则中使用对应 outboundTag。WARP 可注册 Cloudflare 账号后一键生成。"></a-alert>
+                <div class="warp-grid">
+                    <div class="warp-item"><div class="warp-label">WARP 账号</div><div class="warp-value">[[ warp.account ? '已注册' : '未注册' ]]</div></div>
+                    <div class="warp-item"><div class="warp-label">Device ID</div><div class="warp-value">[[ warp.account ? warp.account.deviceId : '-' ]]</div></div>
+                    <div class="warp-item"><div class="warp-label">Public Key</div><div class="warp-value">[[ warp.account ? mask(warp.account.publicKey) : '-' ]]</div></div>
+                    <div class="warp-item"><div class="warp-label">自动更新</div><div class="warp-value">[[ warp.account && warp.account.autoUpdate ? warp.account.autoUpdate + ' 天' : '关闭' ]]</div></div>
+                </div>
                 <a-table :columns="columns" :data-source="endpoints" :row-key="record => record.id" :pagination="false" size="middle">
                     <template slot="enable" slot-scope="text, record">
                         <a-tag :color="record.enable ? 'green' : 'red'">[[ record.enable ? '启用' : '禁用' ]]</a-tag>
@@ -39,20 +53,27 @@
 
     <a-modal v-model="modal.visible" :title="modal.form.id ? '编辑端点' : '新增端点'" @ok="saveEndpoint" :confirm-loading="modal.loading" ok-text="保存" cancel-text="取消" width="760px">
         <a-form layout="vertical">
-            <a-form-item label="名称"><a-input v-model.trim="modal.form.name" /></a-form-item>
-            <a-form-item label="启用"><a-switch v-model="modal.form.enable" checked-children="启用" un-checked-children="禁用" /></a-form-item>
+            <a-form-item label="名称"><a-input v-model.trim="modal.form.name"></a-input></a-form-item>
+            <a-form-item label="启用"><a-switch v-model="modal.form.enable" checked-children="启用" un-checked-children="禁用"></a-switch></a-form-item>
             <a-form-item label="类型"><a-select v-model="modal.form.type"><a-select-option value="wireguard">WireGuard / WARP</a-select-option><a-select-option value="custom">自定义 outbound JSON</a-select-option></a-select></a-form-item>
-            <a-form-item label="Outbound Tag"><a-input v-model.trim="modal.form.tag" placeholder="warp" /></a-form-item>
-            <a-form-item label="排序"><a-input-number v-model="modal.form.sort" style="width: 160px" /></a-form-item>
+            <a-form-item label="Outbound Tag"><a-input v-model.trim="modal.form.tag" placeholder="warp"></a-input></a-form-item>
+            <a-form-item label="排序"><a-input-number v-model="modal.form.sort" style="width: 160px"></a-input-number></a-form-item>
             <template v-if="modal.form.type === 'wireguard'">
-                <a-form-item label="本地 Address"><a-input v-model.trim="modal.form.address" placeholder="172.16.0.2/32,2606:4700:110:xxxx::/128" /><div class="hint">多个地址用英文逗号分隔</div></a-form-item>
-                <a-form-item label="SecretKey"><a-input-password v-model.trim="modal.form.secretKey" /></a-form-item>
-                <a-form-item label="Peer PublicKey"><a-input v-model.trim="modal.form.publicKey" /></a-form-item>
-                <a-form-item label="Peer Endpoint"><a-input v-model.trim="modal.form.endpoint" placeholder="engage.cloudflareclient.com:2408" /></a-form-item>
-                <a-form-item label="Reserved"><a-input v-model.trim="modal.form.reserved" placeholder="1,2,3" /></a-form-item>
-                <a-form-item label="MTU"><a-input-number v-model="modal.form.mtu" :min="576" :max="9000" style="width: 160px" /></a-form-item>
+                <a-form-item label="本地 Address"><a-input v-model.trim="modal.form.address" placeholder="172.16.0.2/32,2606:4700:110:xxxx::/128"></a-input><div class="hint">多个地址用英文逗号分隔</div></a-form-item>
+                <a-form-item label="SecretKey"><a-input-password v-model.trim="modal.form.secretKey"></a-input-password></a-form-item>
+                <a-form-item label="Peer PublicKey"><a-input v-model.trim="modal.form.publicKey"></a-input></a-form-item>
+                <a-form-item label="Peer Endpoint"><a-input v-model.trim="modal.form.endpoint" placeholder="engage.cloudflareclient.com:2408"></a-input></a-form-item>
+                <a-form-item label="Reserved"><a-input v-model.trim="modal.form.reserved" placeholder="1,2,3"></a-input></a-form-item>
+                <a-form-item label="MTU"><a-input-number v-model="modal.form.mtu" :min="576" :max="9000" style="width: 160px"></a-input-number></a-form-item>
             </template>
-            <a-form-item label="高级 JSON"><a-textarea v-model.trim="modal.form.settings" :rows="6" placeholder='{"domainStrategy":"ForceIPv4"}' /><div class="hint">WireGuard 类型会合并到 settings；自定义类型需填写完整 outbound JSON，保存时自动覆盖 tag。</div></a-form-item>
+            <a-form-item label="高级 JSON"><a-textarea v-model.trim="modal.form.settings" :rows="6" placeholder='{"domainStrategy":"ForceIPv4"}'></a-textarea><div class="hint">WireGuard 类型会合并到 settings；自定义类型需填写完整 outbound JSON，保存时自动覆盖 tag。</div></a-form-item>
+        </a-form>
+    </a-modal>
+
+    <a-modal v-model="warpModal.visible" title="WARP 设置" @ok="saveWarpLicense" :confirm-loading="warpModal.loading" ok-text="保存 License" cancel-text="关闭" width="620px">
+        <a-form layout="vertical">
+            <a-form-item label="WARP+ License"><a-input v-model.trim="warpModal.license" placeholder="可选，填写后绑定到当前 WARP 账号"></a-input></a-form-item>
+            <a-form-item label="自动更新周期"><a-input-number v-model="warpModal.days" :min="0" :max="365" style="width: 160px"></a-input-number><div class="hint">0 表示关闭；当前版本保存周期，后续任务中心会展示相关操作日志。</div></a-form-item>
         </a-form>
     </a-modal>
 </a-layout>
@@ -64,7 +85,9 @@
         data: {
             siderDrawer,
             endpoints: [],
+            warp: { account: null, data: null },
             modal: { visible: false, loading: false, form: {} },
+            warpModal: { visible: false, loading: false, license: '', days: 0 },
             columns: [
                 { title: '排序', dataIndex: 'sort', width: 80 },
                 { title: '状态', scopedSlots: { customRender: 'enable' }, width: 80 },
@@ -80,6 +103,16 @@
             async loadEndpoints() {
                 const msg = await HttpUtil.post('/xui/endpoint/list');
                 if (msg.success) this.endpoints = msg.obj || [];
+            },
+            async loadWarp() {
+                const msg = await HttpUtil.post('/xui/endpoint/warp');
+                if (msg.success) {
+                    this.warp.account = msg.obj || null;
+                    if (this.warp.account) {
+                        this.warpModal.license = this.warp.account.licenseKey || '';
+                        this.warpModal.days = this.warp.account.autoUpdate || 0;
+                    }
+                }
             },
             openModal(endpoint) {
                 this.modal.form = endpoint ? ObjectUtil.clone(endpoint) : this.defaultEndpoint();
@@ -101,12 +134,48 @@
             applyEndpoints() {
                 this.$confirm({ title: '应用端点', content: '将校验并重启 Xray，确定继续？', onOk: async () => { await HttpUtil.post('/xui/endpoint/apply'); } });
             },
+            registerWarp() {
+                this.$confirm({ title: '注册 WARP 账号', content: '将调用 Cloudflare WARP API 注册新设备，旧账号会被替换。确定继续？', onOk: async () => {
+                    const msg = await HttpUtil.post('/xui/endpoint/warp/register');
+                    if (msg.success) {
+                        this.$message.success('WARP 注册任务已创建');
+                        await this.loadWarp();
+                    }
+                } });
+            },
+            async refreshWarp() {
+                const msg = await HttpUtil.post('/xui/endpoint/warp/refresh');
+                if (msg.success) {
+                    this.warp.data = msg.obj;
+                    this.$message.success('WARP 状态已刷新');
+                    await this.loadWarp();
+                }
+            },
+            createWarpEndpoint() {
+                this.$confirm({ title: '生成 WARP 端点', content: '将用当前 WARP 账号刷新配置并创建/更新 tag=warp 的端点。确定继续？', onOk: async () => {
+                    const msg = await HttpUtil.post('/xui/endpoint/warp/createEndpoint', { tag: 'warp' });
+                    if (msg.success) await this.loadEndpoints();
+                } });
+            },
+            openWarpSettings() {
+                this.warpModal.visible = true;
+            },
+            async saveWarpLicense() {
+                this.warpModal.loading = true;
+                if (this.warpModal.license) await HttpUtil.post('/xui/endpoint/warp/license', { license: this.warpModal.license });
+                const msg = await HttpUtil.post('/xui/endpoint/warp/autoUpdate', { days: this.warpModal.days || 0 });
+                this.warpModal.loading = false;
+                if (msg.success) {
+                    this.warpModal.visible = false;
+                    await this.loadWarp();
+                }
+            },
             mask(value) {
                 if (!value || value.length <= 10) return value || '-';
                 return value.slice(0, 6) + '...' + value.slice(-4);
             },
         },
-        mounted() { this.loadEndpoints(); },
+        mounted() { this.loadEndpoints(); this.loadWarp(); },
     });
 </script>
 </body>

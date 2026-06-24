@@ -13,6 +13,7 @@
   --text:#1a1d23;--dim:#5a606a;--muted:#949ba6;
   --accent:#2563eb;--accent2:#1d4ed8;--accent-bg:rgba(37,99,235,.06);
   --green:#16a34a;--green-bg:#dcfce7;
+  --red:#dc2626;--red-bg:#fee2e2;
   --purple:#7c3aed;--purple-bg:#ede9fe;
   --orange:#ea580c;--orange-bg:#fff7ed;
   --pink:#db2777;--pink-bg:#fce7f3;
@@ -161,12 +162,12 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--accent2)}
     <div class="container">
       <div class="hero-tag">Xray Web 管理面板</div>
       <h1>x-<em>ui</em></h1>
-      <p class="sub">基于 Go 构建的轻量级 Xray 管理面板，浏览器管理入站代理、用户配置、流量统计，一站式搞定。</p>
+      <p class="sub">基于 Go 构建的轻量级 Xray 管理面板，覆盖入站管理、订阅系统、WARP 出口、证书中心、任务日志和网络体检。</p>
       <div class="hero-badges">
         <span class="badge"><span class="dot" style="background:var(--accent)"></span>Go + Gin</span>
         <span class="badge"><span class="dot" style="background:var(--green)"></span>Xray-core</span>
         <span class="badge"><span class="dot" style="background:var(--purple)"></span>MIT 开源</span>
-        <span class="badge"><span class="dot" style="background:var(--orange)"></span>v1.0.7 安全加固</span>
+        <span class="badge"><span class="dot" style="background:var(--orange)"></span>v1.1.0 最新发布</span>
       </div>
       <div class="hero-btns">
         <a href="#install" class="btn btn-primary">立即安装</a>
@@ -190,42 +191,42 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--accent2)}
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
           </div>
           <h3>Web 可视化管理</h3>
-          <p>浏览器直接管理 Xray 入站配置，支持多用户、多协议、多传输方式。</p>
+          <p>浏览器直接管理 Xray 入站配置，支持筛选、统计、到期/流量限制和一键 VLESS Reality。</p>
         </div>
         <div class="fc">
           <div class="icon green">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
           </div>
-          <h3>系统状态监控</h3>
-          <p>实时查看 CPU、内存、磁盘、网络流量、TCP/UDP 连接数等运行状态。</p>
+          <h3>现代化仪表盘</h3>
+          <p>实时查看 Xray 状态、CPU、内存、磁盘、网络流量、连接数和 7 日流量趋势。</p>
         </div>
         <div class="fc">
           <div class="icon purple">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
           </div>
-          <h3>安全加固</h3>
-          <p>CSRF 双层防护、登录限速、用户隔离、CSP nonce、会话密钥轮换、TG Token 加密存储。</p>
+          <h3>独立代理用户</h3>
+          <p>支持代理用户、订阅 token、订阅访问记录和公开订阅地址配置。</p>
         </div>
         <div class="fc">
           <div class="icon orange">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
           </div>
-          <h3>Telegram 通知</h3>
-          <p>流量统计、登录提醒、到期提醒、流量预警，通过 Telegram Bot 实时推送。</p>
+          <h3>WARP / Endpoint</h3>
+          <p>支持 WARP 注册、刷新、License、自动更新和 WireGuard 出口注入。</p>
         </div>
         <div class="fc">
           <div class="icon cyan">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 002 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0022 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/></svg>
           </div>
-          <h3>CGO-Free 构建</h3>
-          <p>纯 Go SQLite 驱动，无需 CGO，跨平台编译更简单。</p>
+          <h3>证书与任务中心</h3>
+          <p>支持证书上传、ACME HTTP-01 申请、ACME/DNS 账号管理和异步任务日志。</p>
         </div>
         <div class="fc">
           <div class="icon pink">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
           </div>
-          <h3>v2-ui 迁移</h3>
-          <p>一键迁移 v2-ui 的入站配置和用户数据，平滑升级。</p>
+          <h3>网络体检</h3>
+          <p>聚合出口 IP、平台可达性、协议检查、三网回程检测和评分建议。</p>
         </div>
       </div>
     </div>
@@ -285,52 +286,52 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--accent2)}
   <section class="section" id="security">
     <div class="container">
       <div class="section-header">
-        <div class="section-tag">Security Update · v1.0.7</div>
-        <h2>安全审计加固</h2>
-        <p class="desc">v1.0.7 完成全量代码审计，按优先级修复 7 项安全问题</p>
+        <div class="section-tag">Release · v1.1.0</div>
+        <h2>发布亮点</h2>
+        <p class="desc">v1.1.0 完成核心页面重写、功能闭环和订阅安全加固</p>
       </div>
       <div class="fg">
         <div class="fc">
           <div class="icon blue">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
           </div>
-          <h3>P0 · Host 头注入修复</h3>
-          <p>修复 AutoHttps 重定向对客户端 Host 头缺乏校验导致的响应拆分与开放重定向风险。</p>
+          <h3>页面体验重写</h3>
+          <p>重写系统状态、网络体检、入站管理和设置中心，提升日常运维效率。</p>
         </div>
         <div class="fc">
           <div class="icon green">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/><path d="M9 12l2 2 4-4"/></svg>
           </div>
-          <h3>P1 · 安装脚本 TLS 校验</h3>
-          <p>移除 wget --no-check-certificate，下载后打印 SHA256 供核对，避免中间人篡改可执行脚本。</p>
+          <h3>订阅安全加固</h3>
+          <p>订阅链接不再信任请求 Host，访问日志增加去重清理，token 增加强度校验。</p>
         </div>
         <div class="fc">
           <div class="icon purple">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/></svg>
           </div>
-          <h3>P1 · 真实客户端 IP 识别</h3>
-          <p>新增 webTrustedProxies 配置项，反代场景下按 XFF 链回溯真实客户端 IP，登录限速更准确。</p>
+          <h3>功能中心扩展</h3>
+          <p>新增 WARP/Endpoint、证书中心、任务中心、独立代理用户和订阅系统。</p>
         </div>
         <div class="fc">
           <div class="icon orange">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
           </div>
-          <h3>P2 · 初始口令自动清理</h3>
-          <p>首次登录或修改密码成功后自动删除初始随机口令文件，避免明文口令长期残留在磁盘。</p>
+          <h3>模板安全测试</h3>
+          <p>增加 Vue2/Ant Design Vue 模板测试，防止自闭合组件造成页面渲染异常。</p>
         </div>
         <div class="fc">
           <div class="icon cyan">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 002 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0022 16z"/></svg>
           </div>
-          <h3>P2 · 容器非 root 运行</h3>
-          <p>Dockerfile 改用非 root 用户运行，通过 setcap 支持低端口绑定，缩小容器内攻击面。</p>
+          <h3>Release 包</h3>
+          <p>GitHub Actions 自动构建 amd64 与 arm64 安装包，并上传到 GitHub Releases。</p>
         </div>
         <div class="fc">
           <div class="icon pink">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M12 8v4M12 16h.01"/></svg>
           </div>
-          <h3>P3 · CSP nonce &amp; 密钥轮换</h3>
-          <p>CSP 引入一次性 nonce 替代 unsafe-inline；新增 setting -rotatesecret 命令轮换会话签名密钥。</p>
+          <h3>持续安全基线</h3>
+          <p>保留登录限速、CSRF/同源校验、可信代理、随机初始凭据和严格文件权限等加固。</p>
         </div>
       </div>
     </div>
@@ -355,14 +356,14 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--accent2)}
         <div class="term-body">
           <div class="copy-row">
             <span class="prompt">$</span>
-            <code>bash &lt;(curl -Ls https://raw.githubusercontent.com/motao123/x-ui/main/install.sh)</code>
+            <code>bash &lt;(curl -Ls https://raw.githubusercontent.com/motao123/x-ui/main/install.sh) v1.1.0</code>
             <button class="cp" onclick="cpy(this)">复制</button>
           </div>
         </div>
       </div>
       <div class="cg">
         <div class="ci"><code>x-ui</code><span>管理菜单</span></div>
-        <div class="ci"><code>x-ui status</code><span>查看状态</span></div>
+        <div class="ci"><code>v1.1.0</code><span>最新版本</span></div>
         <div class="ci"><code>x-ui start</code><span>启动面板</span></div>
         <div class="ci"><code>x-ui stop</code><span>停止面板</span></div>
         <div class="ci"><code>x-ui restart</code><span>重启面板</span></div>
@@ -383,7 +384,7 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--accent2)}
 
 <script>
 function cpy(btn){
-  navigator.clipboard.writeText("bash <(curl -Ls https://raw.githubusercontent.com/motao123/x-ui/main/install.sh)").then(function(){
+  navigator.clipboard.writeText("bash <(curl -Ls https://raw.githubusercontent.com/motao123/x-ui/main/install.sh) v1.1.0").then(function(){
     btn.textContent='已复制';
     btn.classList.add('copied');
     setTimeout(function(){btn.textContent='复制';btn.classList.remove('copied')},2000);

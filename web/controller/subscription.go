@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"net"
 	"strings"
 	"x-ui/web/service"
 
@@ -10,6 +9,7 @@ import (
 
 type SubscriptionController struct {
 	subscriptionService service.SubscriptionService
+	settingService      service.SettingService
 }
 
 func NewSubscriptionController(g *gin.RouterGroup) *SubscriptionController {
@@ -26,19 +26,16 @@ func (a *SubscriptionController) initRouter(g *gin.RouterGroup) {
 func (a *SubscriptionController) render(c *gin.Context) {
 	token := strings.TrimSpace(c.Param("token"))
 	format := strings.TrimSpace(c.Param("format"))
-	body, contentType, err := a.subscriptionService.Render(token, format, publicHost(c), c.GetHeader("User-Agent"), getRemoteIp(c))
+	host, err := a.settingService.GetSubscriptionHost()
+	if err != nil {
+		c.String(404, "subscription not found")
+		return
+	}
+	body, contentType, err := a.subscriptionService.Render(token, format, host, c.GetHeader("User-Agent"), getRemoteIp(c))
 	if err != nil {
 		c.String(404, "subscription not found")
 		return
 	}
 	c.Header("Content-Type", contentType)
 	c.String(200, body)
-}
-
-func publicHost(c *gin.Context) string {
-	host := c.Request.Host
-	if h, _, err := net.SplitHostPort(host); err == nil {
-		return h
-	}
-	return host
 }

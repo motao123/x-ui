@@ -39,6 +39,7 @@ type AllSetting struct {
 	WebKeyFile         string `json:"webKeyFile" form:"webKeyFile"`
 	WebBasePath        string `json:"webBasePath" form:"webBasePath"`
 	WebTrustedProxies  string `json:"webTrustedProxies" form:"webTrustedProxies"`
+	SubscriptionHost   string `json:"subscriptionHost" form:"subscriptionHost"`
 	TgBotEnable        bool   `json:"tgBotEnable" form:"tgBotEnable"`
 	TgBotToken         string `json:"tgBotToken" form:"tgBotToken"`
 	TgBotChatId        int    `json:"tgBotChatId" form:"tgBotChatId"`
@@ -88,6 +89,10 @@ func (s *AllSetting) CheckValid() error {
 		return err
 	}
 
+	if err := validateSubscriptionHost(s.SubscriptionHost); err != nil {
+		return err
+	}
+
 	xrayConfig := &xray.Config{}
 	err := json.Unmarshal([]byte(s.XrayTemplateConfig), xrayConfig)
 	if err != nil {
@@ -108,6 +113,41 @@ func isSafeAbsPath(path string) bool {
 	}
 	cleaned := filepath.Clean(path)
 	return cleaned == path && !strings.Contains(path, "..")
+}
+
+func validateSubscriptionHost(raw string) error {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return nil
+	}
+	if strings.ContainsAny(raw, "/?#@\x00") {
+		return common.NewError("subscription public host is invalid:", raw)
+	}
+	host := raw
+	if h, _, err := net.SplitHostPort(raw); err == nil {
+		host = h
+	}
+	if host == "" {
+		return common.NewError("subscription public host is invalid:", raw)
+	}
+	if net.ParseIP(host) != nil {
+		return nil
+	}
+	if strings.Contains(host, "..") || strings.HasPrefix(host, ".") || strings.HasSuffix(host, ".") {
+		return common.NewError("subscription public host is invalid:", raw)
+	}
+	for _, label := range strings.Split(host, ".") {
+		if label == "" || len(label) > 63 || strings.HasPrefix(label, "-") || strings.HasSuffix(label, "-") {
+			return common.NewError("subscription public host is invalid:", raw)
+		}
+		for _, r := range label {
+			if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '-' {
+				continue
+			}
+			return common.NewError("subscription public host is invalid:", raw)
+		}
+	}
+	return nil
 }
 
 // validateTrustedProxies 校验 webTrustedProxies 字段：空值合法（不信任任何代理），

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"regexp"
 	"strings"
 	"time"
 	"x-ui/database"
@@ -13,6 +14,8 @@ import (
 )
 
 type ProxyUserService struct{}
+
+var proxyUserTokenPattern = regexp.MustCompile(`^[A-Za-z0-9]{24,128}$`)
 
 type ProxyUserPayload struct {
 	Id         int    `json:"id" form:"id"`
@@ -94,7 +97,11 @@ func (s *ProxyUserService) Save(payload *ProxyUserPayload) error {
 		user.Name = payload.Name
 		user.Enable = payload.Enable
 		if payload.Token != "" {
-			user.Token = strings.TrimSpace(payload.Token)
+			token := strings.TrimSpace(payload.Token)
+			if !proxyUserTokenPattern.MatchString(token) {
+				return common.NewError("订阅令牌必须是 24-128 位字母或数字")
+			}
+			user.Token = token
 		}
 		if payload.UUID != "" {
 			user.UUID = strings.TrimSpace(payload.UUID)

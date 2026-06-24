@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/url"
 	"strings"
 	"time"
@@ -15,6 +16,11 @@ type SubscriptionService struct {
 	proxyUserService ProxyUserService
 	inboundService   InboundService
 }
+
+const (
+	subscriptionAccessLogInterval = 5 * time.Minute
+	subscriptionAccessRetention   = 30 * 24 * time.Hour
+)
 
 func (s *SubscriptionService) Render(token string, format string, host string, userAgent string, remoteIp string) (string, string, error) {
 	proxyUser, err := s.proxyUserService.GetByToken(token)
@@ -28,13 +34,7 @@ func (s *SubscriptionService) Render(token string, format string, host string, u
 	if err != nil {
 		return "", "", err
 	}
-	_ = database.GetDB().Create(&model.SubscriptionAccess{
-		ProxyUserId: proxyUser.Id,
-		Format:      format,
-		UserAgent:   userAgent,
-		RemoteIp:    remoteIp,
-		AccessedAt:  time.Now().Unix(),
-	}).Error
+	s.recordAccess(proxyUser.Id, format, userAgent, remoteIp)
 	body := strings.Join(links, "\n")
 	switch strings.ToLower(format) {
 	case "", "base64", "b64":
@@ -44,6 +44,26 @@ func (s *SubscriptionService) Render(token string, format string, host string, u
 	default:
 		return "", "", fmt.Errorf("unsupported subscription format: %s", format)
 	}
+}
+
+func (s *SubscriptionService) recordAccess(proxyUserId int, format string, userAgent string, remoteIp string) {
+	now := time.Now()
+	db := database.GetDB()
+	recentSince := now.Add(-subscriptionAccessLogInterval).Unix()
+	var count int64
+	err := db.Model(&model.SubscriptionAccess{}).
+		Where("proxy_user_id = ? AND format = ? AND user_agent = ? AND remote_ip = ? AND accessed_at >= ?", proxyUserId, format, userAgent, remoteIp, recentSince).
+		Count(&count).Error
+	if err == nil && count == 0 {
+		_ = db.Create(&model.SubscriptionAccess{
+			ProxyUserId: proxyUserId,
+			Format:      format,
+			UserAgent:   userAgent,
+			RemoteIp:    remoteIp,
+			AccessedAt:  now.Unix(),
+		}).Error
+	}
+	_ = db.Where("accessed_at < ?", now.Add(-subscriptionAccessRetention).Unix()).Delete(&model.SubscriptionAccess{}).Error
 }
 
 func (s *SubscriptionService) links(proxyUser *model.ProxyUser, host string) ([]string, error) {
@@ -66,8 +86,14 @@ func (s *SubscriptionService) links(proxyUser *model.ProxyUser, host string) ([]
 
 func buildSubscriptionLink(proxyUser *model.ProxyUser, inbound *model.Inbound, host string) string {
 	address := host
+	if h, _, err := net.SplitHostPort(address); err == nil {
+		address = h
+	}
 	if inbound.Listen != "" && inbound.Listen != "0.0.0.0" && inbound.Listen != "::" {
 		address = inbound.Listen
+	}
+	if address == "" {
+		return ""
 	}
 	remark := url.QueryEscape(proxyUser.Name + "-" + inbound.Remark)
 	switch inbound.Protocol {

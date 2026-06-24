@@ -176,6 +176,7 @@ class AllSetting {
         this.webKeyFile = "";
         this.webBasePath = "/";
         this.webTrustedProxies = "";
+        this.subscriptionHost = "";
         this.tgBotEnable = false;
         this.tgBotToken = "";
         this.tgBotChatId = 0;

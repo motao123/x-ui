@@ -31,6 +31,7 @@ var defaultValueMap = map[string]string{
 	"secret":             random.Seq(32),
 	"webBasePath":        "/",
 	"webTrustedProxies":  "",
+	"subscriptionHost":   "",
 	"timeLocation":       "Asia/Shanghai",
 	"tgBotEnable":        "false",
 	"tgBotToken":         "",
@@ -357,6 +358,10 @@ func (s *SettingService) GetTrustedProxies() (string, error) {
 // SetTrustedProxies 设置 webTrustedProxies 配置。
 func (s *SettingService) SetTrustedProxies(value string) error {
 	return s.setString("webTrustedProxies", value)
+}
+
+func (s *SettingService) GetSubscriptionHost() (string, error) {
+	return s.getString("subscriptionHost")
 }
 
 func (s *SettingService) GetTimeLocation() (*time.Location, error) {

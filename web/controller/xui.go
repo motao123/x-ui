@@ -8,6 +8,7 @@ type XUIController struct {
 	BaseController
 
 	certificateController *CertificateController
+	endpointController    *EndpointController
 	inboundController     *InboundController
 	proxyUserController   *ProxyUserController
 	quickNodeController   *QuickNodeController
@@ -30,12 +31,14 @@ func (a *XUIController) initRouter(g *gin.RouterGroup) {
 	g.GET("/inbounds", a.inbounds)
 	g.GET("/proxy-users", a.proxyUsers)
 	g.GET("/certificates", a.certificates)
+	g.GET("/endpoints", a.endpoints)
 	g.GET("/routes", a.routes)
 	g.GET("/detect", a.detect)
 	g.GET("/logs", a.logs)
 	g.GET("/setting", a.setting)
 
 	a.certificateController = NewCertificateController(g)
+	a.endpointController = NewEndpointController(g)
 	a.inboundController = NewInboundController(g)
 	a.proxyUserController = NewProxyUserController(g)
 	a.quickNodeController = NewQuickNodeController(g)
@@ -59,6 +62,10 @@ func (a *XUIController) proxyUsers(c *gin.Context) {
 
 func (a *XUIController) certificates(c *gin.Context) {
 	html(c, "certificates.html", "证书管理", nil)
+}
+
+func (a *XUIController) endpoints(c *gin.Context) {
+	html(c, "endpoints.html", "Endpoint / WARP", nil)
 }
 
 func (a *XUIController) routes(c *gin.Context) {

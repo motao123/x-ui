@@ -126,3 +126,24 @@ type RouteRule struct {
 }
 
 func (RouteRule) TableName() string { return "route_rules" }
+
+type Endpoint struct {
+	Id        int    `json:"id" form:"id" gorm:"primaryKey;autoIncrement"`
+	Enable    bool   `json:"enable" form:"enable"`
+	Name      string `json:"name" form:"name" gorm:"not null"`
+	Type      string `json:"type" form:"type" gorm:"not null"`
+	Tag       string `json:"tag" form:"tag" gorm:"uniqueIndex;not null"`
+	Address   string `json:"address" form:"address"`
+	Endpoint  string `json:"endpoint" form:"endpoint"`
+	Port      int    `json:"port" form:"port"`
+	SecretKey string `json:"secretKey" form:"secretKey"`
+	PublicKey string `json:"publicKey" form:"publicKey"`
+	Reserved  string `json:"reserved" form:"reserved"`
+	Mtu       int    `json:"mtu" form:"mtu"`
+	Settings  string `json:"settings" form:"settings"`
+	Sort      int    `json:"sort" form:"sort" gorm:"index"`
+	CreatedAt int64  `json:"createdAt"`
+	UpdatedAt int64  `json:"updatedAt"`
+}
+
+func (Endpoint) TableName() string { return "endpoints" }

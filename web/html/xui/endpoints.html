@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+{{template "head" .}}
+<style>
+    @media (min-width: 769px) { .ant-layout-content { margin: 24px 16px; } }
+    .toolbar { margin-bottom: 16px; display: flex; gap: 8px; flex-wrap: wrap; }
+    .hint { color: rgba(0,0,0,0.45); font-size: 12px; }
+</style>
+<body>
+<a-layout id="app" v-cloak>
+    {{ template "commonSider" . }}
+    <a-layout id="content-layout">
+        <a-layout-content>
+            <a-card title="Endpoint / WARP">
+                <div class="toolbar">
+                    <a-button type="primary" icon="plus" @click="openModal()">新增端点</a-button>
+                    <a-button icon="reload" @click="loadEndpoints">刷新</a-button>
+                    <a-button icon="check" @click="applyEndpoints">应用端点</a-button>
+                </div>
+                <a-alert type="info" show-icon style="margin-bottom: 16px" message="启用的端点会追加到当前 Xray 模板 outbounds 后面，可在路由规则中使用对应 outboundTag。WARP 可用 wireguard 类型配置。" />
+                <a-table :columns="columns" :data-source="endpoints" :row-key="record => record.id" :pagination="false" size="middle">
+                    <template slot="enable" slot-scope="text, record">
+                        <a-tag :color="record.enable ? 'green' : 'red'">[[ record.enable ? '启用' : '禁用' ]]</a-tag>
+                    </template>
+                    <template slot="detail" slot-scope="text, record">
+                        <div v-if="record.address">address: [[ record.address ]]</div>
+                        <div v-if="record.endpoint">peer: [[ record.endpoint ]]</div>
+                        <div v-if="record.publicKey">publicKey: [[ mask(record.publicKey) ]]</div>
+                        <div v-if="record.settings" class="hint">含高级 JSON 配置</div>
+                    </template>
+                    <template slot="action" slot-scope="text, record">
+                        <a-button size="small" @click="openModal(record)">编辑</a-button>
+                        <a-button size="small" type="danger" @click="deleteEndpoint(record)">删除</a-button>
+                    </template>
+                </a-table>
+            </a-card>
+        </a-layout-content>
+    </a-layout>
+
+    <a-modal v-model="modal.visible" :title="modal.form.id ? '编辑端点' : '新增端点'" @ok="saveEndpoint" :confirm-loading="modal.loading" ok-text="保存" cancel-text="取消" width="760px">
+        <a-form layout="vertical">
+            <a-form-item label="名称"><a-input v-model.trim="modal.form.name" /></a-form-item>
+            <a-form-item label="启用"><a-switch v-model="modal.form.enable" checked-children="启用" un-checked-children="禁用" /></a-form-item>
+            <a-form-item label="类型"><a-select v-model="modal.form.type"><a-select-option value="wireguard">WireGuard / WARP</a-select-option><a-select-option value="custom">自定义 outbound JSON</a-select-option></a-select></a-form-item>
+            <a-form-item label="Outbound Tag"><a-input v-model.trim="modal.form.tag" placeholder="warp" /></a-form-item>
+            <a-form-item label="排序"><a-input-number v-model="modal.form.sort" style="width: 160px" /></a-form-item>
+            <template v-if="modal.form.type === 'wireguard'">
+                <a-form-item label="本地 Address"><a-input v-model.trim="modal.form.address" placeholder="172.16.0.2/32,2606:4700:110:xxxx::/128" /><div class="hint">多个地址用英文逗号分隔</div></a-form-item>
+                <a-form-item label="SecretKey"><a-input-password v-model.trim="modal.form.secretKey" /></a-form-item>
+                <a-form-item label="Peer PublicKey"><a-input v-model.trim="modal.form.publicKey" /></a-form-item>
+                <a-form-item label="Peer Endpoint"><a-input v-model.trim="modal.form.endpoint" placeholder="engage.cloudflareclient.com:2408" /></a-form-item>
+                <a-form-item label="Reserved"><a-input v-model.trim="modal.form.reserved" placeholder="1,2,3" /></a-form-item>
+                <a-form-item label="MTU"><a-input-number v-model="modal.form.mtu" :min="576" :max="9000" style="width: 160px" /></a-form-item>
+            </template>
+            <a-form-item label="高级 JSON"><a-textarea v-model.trim="modal.form.settings" :rows="6" placeholder='{"domainStrategy":"ForceIPv4"}' /><div class="hint">WireGuard 类型会合并到 settings；自定义类型需填写完整 outbound JSON，保存时自动覆盖 tag。</div></a-form-item>
+        </a-form>
+    </a-modal>
+</a-layout>
+{{template "js" .}}
+<script nonce="{{ .csp_nonce }}">
+    const app = new Vue({
+        delimiters: ['[[', ']]'],
+        el: '#app',
+        data: {
+            siderDrawer,
+            endpoints: [],
+            modal: { visible: false, loading: false, form: {} },
+            columns: [
+                { title: '排序', dataIndex: 'sort', width: 80 },
+                { title: '状态', scopedSlots: { customRender: 'enable' }, width: 80 },
+                { title: '名称', dataIndex: 'name' },
+                { title: '类型', dataIndex: 'type', width: 140 },
+                { title: 'Tag', dataIndex: 'tag', width: 140 },
+                { title: '配置', scopedSlots: { customRender: 'detail' } },
+                { title: '操作', scopedSlots: { customRender: 'action' }, width: 160 },
+            ],
+        },
+        methods: {
+            defaultEndpoint() { return { id: 0, enable: true, name: '', type: 'wireguard', tag: 'warp', address: '', endpoint: 'engage.cloudflareclient.com:2408', port: 0, secretKey: '', publicKey: '', reserved: '', mtu: 1420, settings: '', sort: 100 }; },
+            async loadEndpoints() {
+                const msg = await HttpUtil.post('/xui/endpoint/list');
+                if (msg.success) this.endpoints = msg.obj || [];
+            },
+            openModal(endpoint) {
+                this.modal.form = endpoint ? ObjectUtil.clone(endpoint) : this.defaultEndpoint();
+                if (!this.modal.form.type) this.modal.form.type = 'wireguard';
+                this.modal.visible = true;
+            },
+            async saveEndpoint() {
+                this.modal.loading = true;
+                const msg = await HttpUtil.post('/xui/endpoint/save', this.modal.form);
+                this.modal.loading = false;
+                if (msg.success) {
+                    this.modal.visible = false;
+                    await this.loadEndpoints();
+                }
+            },
+            deleteEndpoint(endpoint) {
+                this.$confirm({ title: '删除端点', content: '确定删除该端点？', okType: 'danger', onOk: async () => { const msg = await HttpUtil.post(`/xui/endpoint/del/${endpoint.id}`); if (msg.success) await this.loadEndpoints(); } });
+            },
+            applyEndpoints() {
+                this.$confirm({ title: '应用端点', content: '将校验并重启 Xray，确定继续？', onOk: async () => { await HttpUtil.post('/xui/endpoint/apply'); } });
+            },
+            mask(value) {
+                if (!value || value.length <= 10) return value || '-';
+                return value.slice(0, 6) + '...' + value.slice(-4);
+            },
+        },
+        mounted() { this.loadEndpoints(); },
+    });
+</script>
+</body>
+</html>

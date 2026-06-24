@@ -20,6 +20,7 @@ type XrayService struct {
 	inboundService   InboundService
 	proxyUserService ProxyUserService
 	routeRuleService RouteRuleService
+	endpointService  EndpointService
 	settingService   SettingService
 }
 
@@ -95,6 +96,11 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		return nil, err
 	}
 	xrayConfig.RouterConfig = routing
+	outbounds, err := s.endpointService.CompileOutbounds(xrayConfig.OutboundConfigs)
+	if err != nil {
+		return nil, err
+	}
+	xrayConfig.OutboundConfigs = outbounds
 	return xrayConfig, nil
 }
 

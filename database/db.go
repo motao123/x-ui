@@ -89,6 +89,10 @@ func initRouteRule() error {
 	return db.AutoMigrate(&model.RouteRule{})
 }
 
+func initEndpoint() error {
+	return db.AutoMigrate(&model.Endpoint{})
+}
+
 func InitDB(dbPath string) error {
 	dir := path.Dir(dbPath)
 	err := os.MkdirAll(dir, 0700)
@@ -137,6 +141,10 @@ func InitDB(dbPath string) error {
 		return err
 	}
 	err = initRouteRule()
+	if err != nil {
+		return err
+	}
+	err = initEndpoint()
 	if err != nil {
 		return err
 	}

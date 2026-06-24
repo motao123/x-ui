@@ -1,8 +1,13 @@
 # x-ui
 
+[![Release](https://img.shields.io/github/v/release/motao123/x-ui?label=release)](https://github.com/motao123/x-ui/releases)
+[![Go](https://img.shields.io/badge/Go-1.20%2B-00ADD8?logo=go)](https://go.dev/)
+
 `x-ui` 是一个基于 Go + Gin + Xray-core 的轻量级 Web 管理面板，面向 Linux 服务器部署，提供 Xray 入站配置、用户管理、流量统计、运行状态监控、HTTPS 面板访问、Telegram 通知与 v2-ui 数据迁移等能力。
 
 本仓库基于原 x-ui 项目整理维护，并补充了安全加固，专注 Linux 服务器部署。
+
+当前版本：`v1.1.0`
 
 ## 项目特性
 
@@ -13,7 +18,14 @@
 - 支持 TCP、WebSocket、HTTP/2、gRPC、mKCP、QUIC、HTTPUpgrade、SplitHTTP 等传输配置
 - 支持 TLS、XTLS、Reality 安全配置
 - 系统状态监控：CPU、内存、磁盘、负载、网络流量、TCP/UDP 连接数
+- 现代化系统首页：Xray 状态、流量趋势、资源概览、快捷操作
+- 网络体检：出口 IP、平台可达性、协议检查、三网回程与评分建议
 - 入站流量统计、到期时间限制、流量上限检查
+- 入站管理增强：筛选、统计、一键 VLESS Reality 节点
+- 独立代理用户与订阅链接，支持 token 管理和订阅访问记录
+- Endpoint/WARP 管理：WARP 注册、刷新、License、自动更新和 WireGuard 出口注入
+- 证书中心：证书上传、ACME HTTP-01 申请、ACME/DNS 账号管理
+- 任务中心：异步任务状态和执行日志
 - 支持面板 HTTPS、自定义访问路径 WebBasePath
 - 支持 Telegram Bot 通知：流量统计、登录提醒、到期提醒、流量预警
 - 支持从 v2-ui 迁移 inbound 账号数据
@@ -30,6 +42,9 @@
 - 对跨站写操作增加 Origin/Referer 同源校验
 - 限制客户端 IP 获取的信任边界，避免直接信任伪造的代理头
 - 对 WebBasePath、入站配置等关键输入增加基础校验
+- 公开订阅链接不再信任请求 Host，支持配置订阅公开地址
+- 订阅访问日志增加重复访问抑制和保留清理策略
+- 代理用户订阅 token 增加强度校验
 - Xray 运行配置文件使用更严格的文件权限写入
 
 > 注意：该项目用于服务器代理面板管理，部署后请务必使用强密码、限制管理端口访问来源，并优先启用 HTTPS。
@@ -120,7 +135,7 @@ bash <(curl -Ls https://raw.githubusercontent.com/motao123/x-ui/main/install.sh)
 也可以指定版本安装，例如：
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/motao123/x-ui/main/install.sh) v1.0.0
+bash <(curl -Ls https://raw.githubusercontent.com/motao123/x-ui/main/install.sh) v1.1.0
 ```
 
 > 说明：脚本会优先从 `https://github.com/motao123/x-ui/releases` 下载 `x-ui-linux-${arch}.tar.gz`。如果当前仓库还没有 Release 或下载失败，脚本会自动切换为源码构建安装。
@@ -573,6 +588,20 @@ go test ./...
 ```text
 go test ./...
 ```
+
+## Releases
+
+最新版本：`v1.1.0`
+
+### v1.1.0
+
+- 重写系统状态、网络体检、入站管理和设置中心页面，提升日常运维效率。
+- 新增 WARP/Endpoint、证书中心、任务中心、独立代理用户和订阅系统。
+- 增强订阅安全：固定公开地址来源、访问日志去重清理、token 强度校验。
+- 增加 Vue2/Ant Design Vue 模板安全测试，避免自闭合组件导致页面渲染异常。
+- 完成本地与服务器端测试、构建、部署验证。
+
+历史版本可在 [GitHub Releases](https://github.com/motao123/x-ui/releases) 查看。
 
 ## 项目结构
 

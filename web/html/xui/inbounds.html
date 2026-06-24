@@ -37,6 +37,15 @@
         border-radius: 2px;
         transition: width 0.3s;
     }
+    .page-hero { margin-bottom: 16px; }
+    .page-title { margin: 0; font-size: 24px; font-weight: 700; }
+    .page-subtitle { color: rgba(0,0,0,.45); margin-top: 6px; }
+    .toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 16px; }
+    .stat-card { border: 1px solid #f0f0f0; border-radius: 8px; padding: 14px; background: #fff; }
+    .stat-label { color: rgba(0,0,0,.45); }
+    .stat-value { margin-top: 8px; font-size: 22px; font-weight: 700; }
+    .filter-line { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
 </style>
 <body>
 <a-layout id="app" v-cloak>
@@ -44,29 +53,44 @@
     <a-layout id="content-layout">
         <a-layout-content>
             <a-spin :spinning="spinning" :delay="500" tip="loading">
+                <a-card class="page-hero">
+                    <a-row :gutter="16" type="flex" align="middle">
+                        <a-col :xs="24" :lg="14">
+                            <h1 class="page-title">入站管理</h1>
+                            <div class="page-subtitle">集中管理 Xray 入站、流量、到期时间和分享链接；修改后会自动标记 Xray 待重启。</div>
+                        </a-col>
+                        <a-col :xs="24" :lg="10">
+                            <div class="toolbar" style="justify-content:flex-end">
+                                <a-button type="primary" icon="plus" @click="openAddInbound">添加入站</a-button>
+                                <a-button icon="thunderbolt" @click="openQuickReality">一键 Reality</a-button>
+                                <a-button icon="reload" @click="getDBInbounds">刷新</a-button>
+                            </div>
+                        </a-col>
+                    </a-row>
+                </a-card>
+                <div class="stat-grid">
+                    <div class="stat-card"><div class="stat-label">入站数量</div><div class="stat-value">[[ dbInbounds.length ]]</div></div>
+                    <div class="stat-card"><div class="stat-label">启用 / 禁用</div><div class="stat-value">[[ enabledCount ]] / [[ disabledCount ]]</div></div>
+                    <div class="stat-card"><div class="stat-label">总上传 / 下载</div><div class="stat-value" style="font-size:16px">[[ sizeFormat(total.up) ]] / [[ sizeFormat(total.down) ]]</div></div>
+                    <div class="stat-card"><div class="stat-label">总用量</div><div class="stat-value" style="color:#1890ff">[[ sizeFormat(total.up + total.down) ]]</div></div>
+                </div>
                 <transition name="list" appear>
-                    <a-card style="margin-bottom: 20px;">
-                        <a-row :gutter="16">
-                            <a-col :xs="24" :sm="8">
-                                <a-statistic title="总上传 / 下载" :value="sizeFormat(total.up) + ' / ' + sizeFormat(total.down)" :value-style="{ fontSize: '16px' }"></a-statistic>
-                            </a-col>
-                            <a-col :xs="24" :sm="8">
-                                <a-statistic title="总用量" :value="sizeFormat(total.up + total.down)" :value-style="{ fontSize: '16px', color: '#1890ff' }"></a-statistic>
-                            </a-col>
-                            <a-col :xs="24" :sm="8">
-                                <a-statistic title="入站数量" :value="dbInbounds.length" :value-style="{ fontSize: '16px', color: '#52c41a' }"></a-statistic>
-                            </a-col>
-                        </a-row>
-                    </a-card>
-                </transition>
-                <transition name="list" appear>
-                    <a-card>
-                        <div slot="title" style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-                            <a-button type="primary" icon="plus" @click="openAddInbound">添加入站</a-button>
-                            <a-button icon="thunderbolt" @click="quickModal.visible = true">一键 Reality</a-button>
-                            <a-input v-model="searchKey" placeholder="搜索入站..." allow-clear style="max-width: 240px;">
+                    <a-card title="入站列表">
+                        <div class="filter-line">
+                            <a-input v-model="searchKey" placeholder="搜索备注、端口、协议、Tag..." allow-clear style="width: 260px;">
                                 <a-icon slot="prefix" type="search"></a-icon>
                             </a-input>
+                            <a-select v-model="protocolFilter" style="width: 150px" placeholder="协议筛选">
+                                <a-select-option value="all">全部协议</a-select-option>
+                                <a-select-option v-for="item in protocolOptions" :key="item" :value="item">[[ protocolName(item) ]]</a-select-option>
+                            </a-select>
+                            <a-select v-model="statusFilter" style="width: 130px" placeholder="状态筛选">
+                                <a-select-option value="all">全部状态</a-select-option>
+                                <a-select-option value="enabled">仅启用</a-select-option>
+                                <a-select-option value="disabled">仅禁用</a-select-option>
+                                <a-select-option value="expired">已过期</a-select-option>
+                            </a-select>
+                            <a-tag color="blue">当前 [[ searchedInbounds.length ]] 条</a-tag>
                         </div>
                         <a-table :columns="columns" :row-key="dbInbound => dbInbound.id"
                                  :data-source="searchedInbounds"
@@ -233,6 +257,8 @@
             inboundMap: {},
             dbInbounds: [],
             searchKey: '',
+            protocolFilter: 'all',
+            statusFilter: 'all',
             searchedInbounds: [],
             quickModal: {
                 visible: false,
@@ -255,6 +281,10 @@
             protocolColor(p) { return ProtocolColors[p] || '#1890ff'; },
             networkName(n) { return NetworkNames[n] || n; },
             inboundById(id) { return this.inboundMap[id]; },
+            openQuickReality() {
+                this.quickModal.form = { remark: 'VLESS Reality', port: 0, dest: 'www.microsoft.com:443', serverName: 'www.microsoft.com', createProxyUser: true, proxyUserName: '' };
+                this.quickModal.visible = true;
+            },
             async getDBInbounds() {
                 this.loading();
                 const msg = await HttpUtil.post('/xui/inbound/list');
@@ -278,16 +308,15 @@
                 this.searchInbounds(this.searchKey);
             },
             searchInbounds(key) {
-                if (ObjectUtil.isEmpty(key)) {
-                    this.searchedInbounds = this.dbInbounds.slice();
-                } else {
-                    this.searchedInbounds.splice(0);
-                    this.dbInbounds.forEach(inbound => {
-                        if (ObjectUtil.deepSearch(inbound, key)) {
-                            this.searchedInbounds.push(inbound);
-                        }
-                    });
-                }
+                const keyword = (key || '').toString().trim();
+                this.searchedInbounds = this.dbInbounds.filter(inbound => {
+                    if (keyword && !ObjectUtil.deepSearch(inbound, keyword)) return false;
+                    if (this.protocolFilter !== 'all' && inbound.protocol !== this.protocolFilter) return false;
+                    if (this.statusFilter === 'enabled' && !inbound.enable) return false;
+                    if (this.statusFilter === 'disabled' && inbound.enable) return false;
+                    if (this.statusFilter === 'expired' && !inbound.isExpiry) return false;
+                    return true;
+                });
             },
             clickAction(action, dbInbound) {
                 switch (action.key) {
@@ -317,6 +346,8 @@
                             title: 'Reality 节点已创建',
                             content: '订阅路径：' + msg.obj.subscriptionUrl,
                         });
+                    } else {
+                        this.$message.success('Reality 节点已创建');
                     }
                 }
             },
@@ -332,8 +363,8 @@
                             return;
                         }
                         inModal.loading();
-                        await this.addInbound(inbound, dbInbound);
-                        inModal.close();
+                        const ok = await this.addInbound(inbound, dbInbound);
+                        if (ok) inModal.close();
                     }
                 });
             },
@@ -352,8 +383,8 @@
                             return;
                         }
                         inModal.loading();
-                        await this.updateInbound(inbound, dbInbound);
-                        inModal.close();
+                        const ok = await this.updateInbound(inbound, dbInbound);
+                        if (ok) inModal.close();
                     }
                 });
             },
@@ -373,7 +404,7 @@
                     streamSettings: inbound.stream.toString(),
                     sniffing: inbound.canSniffing() ? inbound.sniffing.toString() : '{}',
                 };
-                await this.submit('/xui/inbound/add', data, inModal);
+                return await this.submit('/xui/inbound/add', data, inModal);
             },
             async updateInbound(inbound, dbInbound) {
                 const data = {
@@ -391,7 +422,7 @@
                     streamSettings: inbound.stream.toString(),
                     sniffing: inbound.canSniffing() ? inbound.sniffing.toString() : '{}',
                 };
-                await this.submit(`/xui/inbound/update/${dbInbound.id}`, data, inModal);
+                return await this.submit(`/xui/inbound/update/${dbInbound.id}`, data, inModal);
             },
             resetTraffic(dbInbound) {
                 this.$confirm({
@@ -425,19 +456,25 @@
                 infoModal.show(dbInbound);
             },
             switchEnable(dbInbound) {
-                this.submit(`/xui/inbound/update/${dbInbound.id}`, dbInbound);
+                this.submit(`/xui/inbound/update/${dbInbound.id}`, dbInbound).then(ok => {
+                    if (ok) this.$message.success(dbInbound.enable ? '入站已启用' : '入站已禁用');
+                });
             },
             async submit(url, data, modal) {
                 const msg = await HttpUtil.postWithModal(url, data, modal);
                 if (msg.success) {
                     await this.getDBInbounds();
+                    return true;
                 }
+                return false;
             },
         },
         watch: {
             searchKey(value) {
                 this.searchInbounds(value);
-            }
+            },
+            protocolFilter() { this.searchInbounds(this.searchKey); },
+            statusFilter() { this.searchInbounds(this.searchKey); },
         },
         mounted() {
             this.getDBInbounds();
@@ -453,7 +490,10 @@
                     down: down,
                     up: up,
                 };
-            }
+            },
+            enabledCount() { return this.dbInbounds.filter(item => item.enable).length; },
+            disabledCount() { return this.dbInbounds.length - this.enabledCount; },
+            protocolOptions() { return [...new Set(this.dbInbounds.map(item => item.protocol).filter(Boolean))]; },
         },
     });
 

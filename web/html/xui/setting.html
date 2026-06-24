@@ -23,6 +23,19 @@
     .ant-tabs-top-bar {
         background: white;
     }
+
+    .page-hero { margin-bottom: 16px; }
+    .page-title { margin: 0; font-size: 24px; font-weight: 700; }
+    .page-subtitle { color: rgba(0,0,0,.45); margin-top: 6px; }
+    .toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px; }
+    .status-card { border: 1px solid #f0f0f0; border-radius: 8px; padding: 14px; background: #fff; }
+    .status-label { color: rgba(0,0,0,.45); }
+    .status-value { margin-top: 8px; font-size: 18px; font-weight: 700; word-break: break-all; }
+    .settings-panel { background: white; border-radius: 8px; overflow: hidden; }
+    .settings-section-title { padding: 16px 20px 0; font-size: 16px; font-weight: 700; }
+    .settings-section-desc { padding: 4px 20px 12px; color: rgba(0,0,0,.45); }
+    .dns-actions { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 20px 16px; }
 </style>
 <body>
 <a-layout id="app" v-cloak>
@@ -30,74 +43,95 @@
     <a-layout id="content-layout">
         <a-layout-content>
             <a-spin :spinning="spinning" :delay="500" tip="loading">
-                <a-space direction="vertical">
-                    <a-space direction="horizontal">
-                        <a-button type="primary" :disabled="saveBtnDisable" @click="updateAllSetting">保存配置</a-button>
-                        <a-button type="danger" :disabled="!saveBtnDisable" @click="restartPanel">重启面板</a-button>
-                        <a-button icon="download" @click="backupDB">备份数据库</a-button>
-                    </a-space>
-                    <a-tabs default-active-key="1">
-                        <a-tab-pane key="1" tab="面板配置">
-                            <a-list item-layout="horizontal" style="background: white">
-                                <setting-list-item type="text" title="面板监听 IP" desc="默认留空监听所有 IP，重启面板生效" v-model="allSetting.webListen"></setting-list-item>
-                                <setting-list-item type="number" title="面板监听端口" desc="重启面板生效" v-model.number="allSetting.webPort"></setting-list-item>
-                                <setting-list-item type="text" title="面板证书公钥文件路径" desc="填写一个 '/' 开头的绝对路径，重启面板生效" v-model="allSetting.webCertFile"></setting-list-item>
-                                <setting-list-item type="text" title="面板证书密钥文件路径" desc="填写一个 '/' 开头的绝对路径，重启面板生效" v-model="allSetting.webKeyFile"></setting-list-item>
-                                <setting-list-item type="text" title="面板 url 根路径" desc="必须以 '/' 开头，以 '/' 结尾，重启面板生效" v-model="allSetting.webBasePath"></setting-list-item>
-                                <setting-list-item type="text" title="受信代理 IP/CIDR" desc="逗号分隔，如 10.0.0.0/8,172.16.0.1；留空表示不信任任何代理（仅用直连 IP）。配置反代时填写反代网段以获取真实客户端 IP，重启面板生效" v-model="allSetting.webTrustedProxies"></setting-list-item>
-                            </a-list>
-                        </a-tab-pane>
-                        <a-tab-pane key="2" tab="用户设置">
-                            <a-form style="background: white; padding: 20px">
-                                <a-form-item label="原用户名">
-                                    <a-input v-model="user.oldUsername" style="max-width: 300px"></a-input>
-                                </a-form-item>
-                                <a-form-item label="原密码">
-                                    <a-input type="password" v-model="user.oldPassword"
-                                             style="max-width: 300px"></a-input>
-                                </a-form-item>
-                                <a-form-item label="新用户名">
-                                    <a-input v-model="user.newUsername" style="max-width: 300px"></a-input>
-                                </a-form-item>
-                                <a-form-item label="新密码">
-                                    <a-input type="password" v-model="user.newPassword"
-                                             style="max-width: 300px"></a-input>
-                                </a-form-item>
-                                <a-form-item>
-                                    <a-button type="primary" @click="updateUser">修改</a-button>
-                                </a-form-item>
-                            </a-form>
-                        </a-tab-pane>
-                        <a-tab-pane key="3" tab="xray 相关设置">
-                            <a-list item-layout="horizontal" style="background: white">
-                                <a-list-item>
-                                    <a-list-item-meta title="DNS 快捷配置" description="一键设置常用 DNS，将自动写入 xray 配置模板的 dns 字段"></a-list-item-meta>
-                                    <template slot="actions">
-                                        <a-button size="small" @click="setDNS('1.1.1.1')">Cloudflare 1.1.1.1</a-button>
-                                        <a-button size="small" @click="setDNS('8.8.8.8')">Google 8.8.8.8</a-button>
-                                        <a-button size="small" @click="setDNS('https://1.1.1.1/dns-query')">Cloudflare DoH</a-button>
-                                        <a-button size="small" @click="setDNS('https://8.8.8.8/dns-query')">Google DoH</a-button>
-                                        <a-button size="small" type="danger" @click="removeDNS">清除 DNS</a-button>
-                                    </template>
-                                </a-list-item>
-                                <setting-list-item type="textarea" title="xray 配置模版" desc="以该模版为基础生成最终的 xray 配置文件，重启面板生效" v-model="allSetting.xrayTemplateConfig"></setting-list-item>
-                            </a-list>
-                        </a-tab-pane>
-                        <a-tab-pane key="4" tab="TG提醒相关设置">
-                            <a-list item-layout="horizontal" style="background: white">
-                                <setting-list-item type="switch" title="启用电报机器人" desc="重启面板生效"  v-model="allSetting.tgBotEnable"></setting-list-item>
-                                <setting-list-item type="text" title="电报机器人TOKEN" desc="重启面板生效"  v-model="allSetting.tgBotToken"></setting-list-item>
-                                <setting-list-item type="number" title="电报机器人ChatId" desc="重启面板生效"  v-model.number="allSetting.tgBotChatId"></setting-list-item>
-                                <setting-list-item type="text" title="电报机器人通知时间" desc="采用Crontab定时格式,重启面板生效"  v-model="allSetting.tgRunTime"></setting-list-item>
-                            </a-list>
-                        </a-tab-pane>
-                        <a-tab-pane key="5" tab="其他设置">
-                            <a-list item-layout="horizontal" style="background: white">
-                                <setting-list-item type="text" title="时区" desc="定时任务按照该时区的时间运行，重启面板生效" v-model="allSetting.timeLocation"></setting-list-item>
-                            </a-list>
-                        </a-tab-pane>
-                    </a-tabs>
-                </a-space>
+                <a-card class="page-hero">
+                    <a-row :gutter="16" type="flex" align="middle">
+                        <a-col :xs="24" :lg="14">
+                            <h1 class="page-title">设置中心</h1>
+                            <div class="page-subtitle">统一管理面板监听、登录账号、Xray 模板、TG 通知和运行时区；保存后按需重启面板生效。</div>
+                        </a-col>
+                        <a-col :xs="24" :lg="10">
+                            <div class="toolbar" style="justify-content:flex-end">
+                                <a-button type="primary" :disabled="saveBtnDisable" @click="updateAllSetting">保存配置</a-button>
+                                <a-button type="danger" :disabled="!saveBtnDisable" @click="restartPanel">重启面板</a-button>
+                                <a-button icon="download" @click="backupDB">备份数据库</a-button>
+                            </div>
+                        </a-col>
+                    </a-row>
+                </a-card>
+                <div class="status-grid">
+                    <div class="status-card"><div class="status-label">监听地址</div><div class="status-value">[[ listenAddress ]]</div></div>
+                    <div class="status-card"><div class="status-label">Base Path</div><div class="status-value">[[ allSetting.webBasePath || '/' ]]</div></div>
+                    <div class="status-card"><div class="status-label">证书状态</div><div class="status-value">[[ certStatus ]]</div></div>
+                    <div class="status-card"><div class="status-label">配置状态</div><div class="status-value" :style="{ color: saveBtnDisable ? '#52c41a' : '#faad14' }">[[ saveBtnDisable ? '已同步' : '有未保存变更' ]]</div></div>
+                </div>
+                <a-alert v-if="!saveBtnDisable" type="warning" show-icon message="当前配置已修改，保存后涉及监听、证书、BasePath、TG 和时区的设置需要重启面板才会生效。" style="margin-bottom:16px"></a-alert>
+                <a-tabs default-active-key="panel" class="settings-panel">
+                    <a-tab-pane key="panel" tab="面板配置">
+                        <div class="settings-section-title">访问入口</div>
+                        <div class="settings-section-desc">控制面板监听地址、端口、HTTPS 证书和反代真实 IP 识别。</div>
+                        <a-list item-layout="horizontal">
+                            <setting-list-item type="text" title="面板监听 IP" desc="默认留空监听所有 IP，重启面板生效" v-model="allSetting.webListen"></setting-list-item>
+                            <setting-list-item type="number" title="面板监听端口" desc="范围 1-65535，重启面板生效" v-model.number="allSetting.webPort"></setting-list-item>
+                            <setting-list-item type="text" title="面板证书公钥文件路径" desc="填写以 '/' 开头的绝对路径，留空则使用 HTTP，重启面板生效" v-model="allSetting.webCertFile"></setting-list-item>
+                            <setting-list-item type="text" title="面板证书密钥文件路径" desc="填写以 '/' 开头的绝对路径，留空则使用 HTTP，重启面板生效" v-model="allSetting.webKeyFile"></setting-list-item>
+                            <setting-list-item type="text" title="面板 URL 根路径" desc="必须以 '/' 开头并以 '/' 结尾，重启面板生效" v-model="allSetting.webBasePath"></setting-list-item>
+                            <setting-list-item type="text" title="受信代理 IP/CIDR" desc="逗号分隔，如 10.0.0.0/8,172.16.0.1；配置反代时填写反代网段以获取真实客户端 IP" v-model="allSetting.webTrustedProxies"></setting-list-item>
+                        </a-list>
+                    </a-tab-pane>
+                    <a-tab-pane key="user" tab="用户设置">
+                        <div class="settings-section-title">登录凭据</div>
+                        <div class="settings-section-desc">修改面板登录用户名和密码，成功后建议重新登录确认。</div>
+                        <a-form style="padding: 20px" layout="vertical">
+                            <a-row :gutter="16">
+                                <a-col :xs="24" :md="12">
+                                    <a-form-item label="原用户名"><a-input v-model.trim="user.oldUsername"></a-input></a-form-item>
+                                </a-col>
+                                <a-col :xs="24" :md="12">
+                                    <a-form-item label="原密码"><a-input-password v-model="user.oldPassword"></a-input-password></a-form-item>
+                                </a-col>
+                                <a-col :xs="24" :md="12">
+                                    <a-form-item label="新用户名"><a-input v-model.trim="user.newUsername"></a-input></a-form-item>
+                                </a-col>
+                                <a-col :xs="24" :md="12">
+                                    <a-form-item label="新密码"><a-input-password v-model="user.newPassword"></a-input-password></a-form-item>
+                                </a-col>
+                            </a-row>
+                            <a-button type="primary" @click="updateUser">修改登录信息</a-button>
+                        </a-form>
+                    </a-tab-pane>
+                    <a-tab-pane key="xray" tab="Xray 模板">
+                        <div class="settings-section-title">Xray 配置模板</div>
+                        <div class="settings-section-desc">面板会基于该 JSON 模板生成最终配置，DNS 快捷配置会直接写入 dns 字段。</div>
+                        <div class="dns-actions">
+                            <a-button size="small" @click="setDNS('1.1.1.1')">Cloudflare 1.1.1.1</a-button>
+                            <a-button size="small" @click="setDNS('8.8.8.8')">Google 8.8.8.8</a-button>
+                            <a-button size="small" @click="setDNS('https://1.1.1.1/dns-query')">Cloudflare DoH</a-button>
+                            <a-button size="small" @click="setDNS('https://8.8.8.8/dns-query')">Google DoH</a-button>
+                            <a-button size="small" type="danger" @click="removeDNS">清除 DNS</a-button>
+                            <a-button size="small" icon="check" @click="validateXrayTemplate">校验 JSON</a-button>
+                        </div>
+                        <a-list item-layout="horizontal">
+                            <setting-list-item type="textarea" title="xray 配置模版" desc="必须是合法 JSON；保存后由 Xray 重启加载" v-model="allSetting.xrayTemplateConfig"></setting-list-item>
+                        </a-list>
+                    </a-tab-pane>
+                    <a-tab-pane key="tg" tab="TG 提醒">
+                        <div class="settings-section-title">Telegram 通知</div>
+                        <div class="settings-section-desc">启用机器人后，可按 Crontab 时间发送流量和到期提醒。</div>
+                        <a-list item-layout="horizontal">
+                            <setting-list-item type="switch" title="启用电报机器人" desc="重启面板生效" v-model="allSetting.tgBotEnable"></setting-list-item>
+                            <setting-list-item type="text" title="电报机器人 TOKEN" desc="重启面板生效" v-model="allSetting.tgBotToken"></setting-list-item>
+                            <setting-list-item type="number" title="电报机器人 ChatId" desc="重启面板生效" v-model.number="allSetting.tgBotChatId"></setting-list-item>
+                            <setting-list-item type="text" title="电报机器人通知时间" desc="采用 Crontab 定时格式，重启面板生效" v-model="allSetting.tgRunTime"></setting-list-item>
+                        </a-list>
+                    </a-tab-pane>
+                    <a-tab-pane key="other" tab="其他设置">
+                        <div class="settings-section-title">运行环境</div>
+                        <div class="settings-section-desc">控制定时任务使用的时区。</div>
+                        <a-list item-layout="horizontal">
+                            <setting-list-item type="text" title="时区" desc="定时任务按照该时区的时间运行，重启面板生效" v-model="allSetting.timeLocation"></setting-list-item>
+                        </a-list>
+                    </a-tab-pane>
+                </a-tabs>
             </a-spin>
         </a-layout-content>
     </a-layout>
@@ -132,6 +166,9 @@
                 }
             },
             async updateAllSetting() {
+                if (!this.validateSettings()) {
+                    return;
+                }
                 this.loading(true);
                 const msg = await HttpUtil.post("/xui/setting/update", this.allSetting);
                 this.loading(false);
@@ -140,6 +177,9 @@
                 }
             },
             async updateUser() {
+                if (!this.validateUser()) {
+                    return;
+                }
                 this.loading(true);
                 const msg = await HttpUtil.post("/xui/setting/updateUser", this.user);
                 this.loading(false);
@@ -177,6 +217,58 @@
                 this.allSetting.xrayTemplateConfig = JSON.stringify(config, null, 2);
                 this.$message.success('DNS 已清除');
             },
+            validateSettings() {
+                const port = Number(this.allSetting.webPort);
+                if (!Number.isInteger(port) || port < 1 || port > 65535) {
+                    this.$message.error('面板监听端口必须是 1-65535 的整数');
+                    return false;
+                }
+                const basePath = this.allSetting.webBasePath || '';
+                if (!basePath.startsWith('/') || !basePath.endsWith('/')) {
+                    this.$message.error('面板 URL 根路径必须以 / 开头并以 / 结尾');
+                    return false;
+                }
+                if (!this.validateCertPath(this.allSetting.webCertFile, '面板证书公钥文件路径')) {
+                    return false;
+                }
+                if (!this.validateCertPath(this.allSetting.webKeyFile, '面板证书密钥文件路径')) {
+                    return false;
+                }
+                if (!this.validateXrayTemplate(false)) {
+                    return false;
+                }
+                this.allSetting.webPort = port;
+                return true;
+            },
+            validateCertPath(path, title) {
+                if (!path) {
+                    return true;
+                }
+                if (!path.startsWith('/')) {
+                    this.$message.error(title + '必须填写以 / 开头的绝对路径');
+                    return false;
+                }
+                return true;
+            },
+            validateXrayTemplate(showSuccess = true) {
+                try {
+                    JSON.parse(this.allSetting.xrayTemplateConfig || '{}');
+                } catch (e) {
+                    this.$message.error('当前 Xray 配置模板不是合法 JSON');
+                    return false;
+                }
+                if (showSuccess) {
+                    this.$message.success('Xray 配置模板 JSON 校验通过');
+                }
+                return true;
+            },
+            validateUser() {
+                if (!this.user.oldUsername || !this.user.oldPassword || !this.user.newUsername || !this.user.newPassword) {
+                    this.$message.error('请完整填写原用户名、原密码、新用户名和新密码');
+                    return false;
+                }
+                return true;
+            },
             async restartPanel() {
                 await new Promise(resolve => {
                     this.$confirm({
@@ -200,6 +292,21 @@
                 const basePath = window.location.pathname.replace(/\/$/, '');
                 window.location.href = basePath + '/server/backup/db';
             }
+        },
+        computed: {
+            listenAddress() {
+                const host = this.allSetting.webListen || '0.0.0.0';
+                return host + ':' + this.allSetting.webPort;
+            },
+            certStatus() {
+                if (this.allSetting.webCertFile && this.allSetting.webKeyFile) {
+                    return 'HTTPS 已配置';
+                }
+                if (this.allSetting.webCertFile || this.allSetting.webKeyFile) {
+                    return '证书不完整';
+                }
+                return 'HTTP';
+            },
         },
         async mounted() {
             await this.getAllSetting();

@@ -35,6 +35,7 @@
     .traffic-down { background: #1890ff; }
     .quick-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
     .quick-link { display: flex; align-items: center; justify-content: space-between; padding: 12px; border: 1px solid #f0f0f0; border-radius: 6px; color: rgba(0,0,0,0.75); transition: all .2s; }
+    .quick-link > span { display: inline-flex; align-items: center; gap: 8px; }
     .quick-link:hover { border-color: #1890ff; color: #1890ff; }
     .mono { font-variant-numeric: tabular-nums; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
 </style>
@@ -61,7 +62,7 @@
                 <a-row :gutter="[16, 16]">
                     <a-col :xs="24" :sm="12" :lg="6" v-for="item in topMetrics" :key="item.key">
                         <a-card class="metric-card">
-                            <div class="metric-title"><a-icon :type="item.icon" />[[ item.title ]]</div>
+                            <div class="metric-title"><a-icon :type="item.icon"></a-icon><span>[[ item.title ]]</span></div>
                             <div class="metric-value mono">[[ item.value ]]</div>
                             <div class="metric-extra">[[ item.extra ]]</div>
                         </a-card>
@@ -78,7 +79,7 @@
                                             <span class="resource-name">[[ resource.name ]]</span>
                                             <span class="resource-value mono">[[ resource.percent ]]%</span>
                                         </div>
-                                        <a-progress :percent="resource.percent" :stroke-color="resource.color" :show-info="false" />
+                                        <a-progress :percent="resource.percent" :stroke-color="resource.color" :show-info="false"></a-progress>
                                         <div class="metric-extra">[[ resource.detail ]]</div>
                                     </div>
                                 </a-col>
@@ -92,10 +93,10 @@
                                 <a-tag color="green">[[ status.xray.version || 'Unknown' ]]</a-tag>
                                 <a-tooltip v-if="status.xray.state === State.Error">
                                     <template slot="title"><p v-for="line in status.xray.errorMsg.split('\n')">[[ line ]]</p></template>
-                                    <a-icon type="question-circle" theme="filled" style="color:#ff4d4f" />
+                                    <a-icon type="question-circle" theme="filled" style="color:#ff4d4f"></a-icon>
                                 </a-tooltip>
                             </div>
-                            <a-divider />
+                            <a-divider></a-divider>
                             <a-descriptions :column="1" size="small">
                                 <a-descriptions-item label="系统运行">[[ formatSecond(status.uptime) ]]</a-descriptions-item>
                                 <a-descriptions-item label="系统负载">[[ status.loads.join(' / ') ]]</a-descriptions-item>
@@ -118,7 +119,7 @@
                                     </div>
                                 </a-tooltip>
                             </div>
-                            <a-empty v-else description="暂无流量历史" />
+                            <a-empty v-else description="暂无流量历史"></a-empty>
                             <div class="metric-extra">绿色为上传，蓝色为下载；数据由后台定时任务记录</div>
                         </a-card>
                     </a-col>
@@ -126,7 +127,7 @@
                         <a-card title="业务概览">
                             <a-row :gutter="[12, 12]">
                                 <a-col :span="12" v-for="item in businessMetrics" :key="item.key">
-                                    <a-statistic :title="item.title" :value="item.value" :suffix="item.suffix" />
+                                    <a-statistic :title="item.title" :value="item.value" :suffix="item.suffix"></a-statistic>
                                 </a-col>
                             </a-row>
                         </a-card>
@@ -135,12 +136,12 @@
 
                 <a-card title="快捷操作">
                     <div class="quick-grid">
-                        <a class="quick-link" :href="basePath + 'xui/inbounds'"><span><a-icon type="user" /> 入站管理</span><a-icon type="right" /></a>
-                        <a class="quick-link" :href="basePath + 'xui/proxy-users'"><span><a-icon type="team" /> 代理用户</span><a-icon type="right" /></a>
-                        <a class="quick-link" :href="basePath + 'xui/routes'"><span><a-icon type="branches" /> 路由规则</span><a-icon type="right" /></a>
-                        <a class="quick-link" :href="basePath + 'xui/endpoints'"><span><a-icon type="api" /> Endpoint / WARP</span><a-icon type="right" /></a>
-                        <a class="quick-link" :href="basePath + 'xui/certificates'"><span><a-icon type="safety-certificate" /> 证书管理</span><a-icon type="right" /></a>
-                        <a class="quick-link" :href="basePath + 'xui/logs'"><span><a-icon type="file-text" /> 面板日志</span><a-icon type="right" /></a>
+                        <a class="quick-link" :href="basePath + 'xui/inbounds'"><span><a-icon type="user"></a-icon><span>入站管理</span></span><a-icon type="right"></a-icon></a>
+                        <a class="quick-link" :href="basePath + 'xui/proxy-users'"><span><a-icon type="team"></a-icon><span>代理用户</span></span><a-icon type="right"></a-icon></a>
+                        <a class="quick-link" :href="basePath + 'xui/routes'"><span><a-icon type="branches"></a-icon><span>路由规则</span></span><a-icon type="right"></a-icon></a>
+                        <a class="quick-link" :href="basePath + 'xui/endpoints'"><span><a-icon type="api"></a-icon><span>Endpoint / WARP</span></span><a-icon type="right"></a-icon></a>
+                        <a class="quick-link" :href="basePath + 'xui/certificates'"><span><a-icon type="safety-certificate"></a-icon><span>证书管理</span></span><a-icon type="right"></a-icon></a>
+                        <a class="quick-link" :href="basePath + 'xui/logs'"><span><a-icon type="file-text"></a-icon><span>面板日志</span></span><a-icon type="right"></a-icon></a>
                     </div>
                 </a-card>
             </div>
@@ -150,19 +151,19 @@
         <div class="version-dialog">
             <div class="version-dialog-header">
                 <h3 class="version-dialog-title">切换 Xray 版本</h3>
-                <button type="button" class="ant-modal-close" aria-label="Close" @click="versionModal.hide()"><span class="ant-modal-close-x"><a-icon type="close" /></span></button>
+                <button type="button" class="ant-modal-close" aria-label="Close" @click="versionModal.hide()"><span class="ant-modal-close-x"><a-icon type="close"></a-icon></span></button>
             </div>
             <div class="version-dialog-body">
-                <a-alert message="请谨慎选择，旧版本可能配置不兼容" type="warning" show-icon style="margin-bottom: 16px;" />
-                <a-alert v-if="versionModal.error" :message="versionModal.error" type="error" show-icon style="margin-bottom: 16px;" />
+                <a-alert message="请谨慎选择，旧版本可能配置不兼容" type="warning" show-icon style="margin-bottom: 16px;"></a-alert>
+                <a-alert v-if="versionModal.error" :message="versionModal.error" type="error" show-icon style="margin-bottom: 16px;"></a-alert>
                 <div v-if="versionCount > 0" class="metric-extra" style="margin-bottom: 8px;">已获取 [[ versionCount ]] 个版本 [[ versionModal.loadedAt ? '，更新时间：' + versionModal.loadedAt : '' ]]</div>
-                <a-empty v-if="versionCount === 0" description="暂无可用版本，请稍后重试或检查服务器 GitHub 访问" />
+                <a-empty v-if="versionCount === 0" description="暂无可用版本，请稍后重试或检查服务器 GitHub 访问"></a-empty>
                 <select v-if="versionCount > 0" v-model="versionModal.selected" class="version-select">
                     <option v-for="version in versionModal.versions" :key="version" :value="version">[[ version ]][[ version === status.xray.version ? '（当前）' : '' ]]</option>
                 </select>
                 <div v-if="versionCount > 0" class="version-list">
                     <a-button v-for="version in versionModal.versions" :key="version" size="small" :type="version === versionModal.selected ? 'primary' : 'default'" @click="versionModal.selected = version">
-                        [[ version ]] <a-icon v-if="version === status.xray.version" type="check-circle" />
+                        [[ version ]] <a-icon v-if="version === status.xray.version" type="check-circle"></a-icon>
                     </a-button>
                 </div>
             </div>

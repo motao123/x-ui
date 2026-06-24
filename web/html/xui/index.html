@@ -2,374 +2,191 @@
 <html lang="en">
 {{template "head" .}}
 <style>
-    @media (min-width: 769px) {
-        .ant-layout-content {
-            margin: 24px 16px;
-        }
-    }
-
-    .ant-col-sm-24 {
-        margin-top: 10px;
-    }
-
-    .stat-card .ant-card-body {
-        padding: 16px 20px;
-    }
-    .stat-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-    }
-    .network-table {
-        width: 100%;
-        table-layout: fixed;
-        border-collapse: collapse;
-    }
-    .network-table td {
-        padding: 0;
-        vertical-align: middle;
-    }
-    .network-table td:last-child {
-        text-align: right;
-    }
-    .network-cell {
-        display: inline-flex;
-        flex-direction: column;
-        gap: 4px;
-    }
-    .network-table td:last-child .network-cell {
-        align-items: flex-end;
-    }
-    .network-table td:first-child .network-cell {
-        align-items: flex-start;
-    }
-    .stat-label {
-        font-size: 13px;
-        color: rgba(0,0,0,0.45);
-        white-space: nowrap;
-    }
-    .stat-value {
-        display: block;
-        min-width: 132px;
-        font-size: 16px;
-        font-weight: 500;
-        color: rgba(0,0,0,0.85);
-        font-variant-numeric: tabular-nums;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-        text-align: right;
-        white-space: nowrap;
-    }
-    .stat-card-title {
-        font-size: 12px;
-        color: rgba(0,0,0,0.35);
-        margin-top: 4px;
-    }
-    .stat-up {
-        color: #52c41a;
-    }
-    .stat-down {
-        color: #1890ff;
-    }
-    .version-list {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-    }
-    .version-dialog-mask {
-        position: fixed;
-        inset: 0;
-        z-index: 1000;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: rgba(0,0,0,0.45);
-    }
-    .version-dialog {
-        width: min(640px, calc(100vw - 32px));
-        max-height: calc(100vh - 64px);
-        overflow: auto;
-        background: #fff;
-        border-radius: 4px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    }
-    .version-dialog-header,
-    .version-dialog-footer {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 16px 24px;
-        border-bottom: 1px solid #e8e8e8;
-    }
-    .version-dialog-footer {
-        justify-content: flex-end;
-        gap: 8px;
-        border-top: 1px solid #e8e8e8;
-        border-bottom: 0;
-    }
-    .version-dialog-title {
-        margin: 0;
-        color: rgba(0,0,0,0.85);
-        font-size: 16px;
-        font-weight: 500;
-    }
-    .version-dialog-header .ant-modal-close {
-        position: static;
-        width: 24px;
-        height: 24px;
-        padding: 0;
-        border: 0;
-        background: transparent;
-        cursor: pointer;
-    }
-    .version-dialog-header .ant-modal-close-x {
-        width: 24px;
-        height: 24px;
-        line-height: 24px;
-    }
-    .version-dialog-body {
-        padding: 24px;
-    }
-    .version-select {
-        width: 100%;
-        height: 36px;
-        margin-bottom: 12px;
-        padding: 4px 11px;
-        border: 1px solid #d9d9d9;
-        border-radius: 4px;
-        background: #fff;
-        color: rgba(0,0,0,0.85);
-    }
-    .xray-status-bar {
-        display: flex;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 8px;
-    }
+    @media (min-width: 769px) { .ant-layout-content { margin: 24px 16px; } }
+    .dashboard { display: flex; flex-direction: column; gap: 16px; }
+    .hero-card .ant-card-body { padding: 22px 24px; }
+    .hero { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; align-items: center; }
+    .hero-title { margin: 0; font-size: 24px; font-weight: 600; color: rgba(0,0,0,0.85); }
+    .hero-subtitle { margin-top: 6px; color: rgba(0,0,0,0.45); }
+    .hero-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .metric-card .ant-card-body { padding: 16px; }
+    .metric-title { color: rgba(0,0,0,0.45); font-size: 13px; display: flex; align-items: center; gap: 6px; }
+    .metric-value { margin-top: 10px; font-size: 24px; font-weight: 600; color: rgba(0,0,0,0.85); font-variant-numeric: tabular-nums; }
+    .metric-extra { margin-top: 4px; color: rgba(0,0,0,0.45); font-size: 12px; }
+    .resource-card .ant-card-body { padding: 18px; }
+    .resource-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .resource-name { font-weight: 500; color: rgba(0,0,0,0.85); }
+    .resource-value { font-variant-numeric: tabular-nums; color: rgba(0,0,0,0.65); }
+    .service-state { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .version-dialog-mask { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.45); }
+    .version-dialog { width: min(640px, calc(100vw - 32px)); max-height: calc(100vh - 64px); overflow: auto; background: #fff; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+    .version-dialog-header, .version-dialog-footer { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; border-bottom: 1px solid #e8e8e8; }
+    .version-dialog-footer { justify-content: flex-end; gap: 8px; border-top: 1px solid #e8e8e8; border-bottom: 0; }
+    .version-dialog-title { margin: 0; color: rgba(0,0,0,0.85); font-size: 16px; font-weight: 500; }
+    .version-dialog-header .ant-modal-close { position: static; width: 24px; height: 24px; padding: 0; border: 0; background: transparent; cursor: pointer; }
+    .version-dialog-header .ant-modal-close-x { width: 24px; height: 24px; line-height: 24px; }
+    .version-dialog-body { padding: 24px; }
+    .version-list { display: flex; flex-wrap: wrap; gap: 8px; }
+    .version-select { width: 100%; height: 36px; margin-bottom: 12px; padding: 4px 11px; border: 1px solid #d9d9d9; border-radius: 4px; background: #fff; color: rgba(0,0,0,0.85); }
+    .traffic-chart { height: 180px; display: flex; align-items: flex-end; gap: 6px; padding: 16px 0 4px; border-bottom: 1px solid #f0f0f0; }
+    .traffic-bar { flex: 1; min-width: 6px; display: flex; align-items: flex-end; gap: 2px; height: 100%; }
+    .traffic-up, .traffic-down { flex: 1; border-radius: 3px 3px 0 0; min-height: 2px; }
+    .traffic-up { background: #52c41a; }
+    .traffic-down { background: #1890ff; }
+    .quick-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
+    .quick-link { display: flex; align-items: center; justify-content: space-between; padding: 12px; border: 1px solid #f0f0f0; border-radius: 6px; color: rgba(0,0,0,0.75); transition: all .2s; }
+    .quick-link:hover { border-color: #1890ff; color: #1890ff; }
+    .mono { font-variant-numeric: tabular-nums; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
 </style>
 <body>
 <a-layout id="app" v-cloak>
     {{ template "commonSider" . }}
     <a-layout id="content-layout">
         <a-layout-content>
-            <a-spin :spinning="spinning" :delay="200" :tip="loadingTip"/>
-            <transition name="list" appear>
-                <a-row>
-                    <a-col :span="24">
-                        <a-card>
-                        <a-row>
-                            <a-col :sm="24" :md="12">
-                                <a-row>
-                                    <a-col :span="12" style="text-align: center">
-                                        <a-progress type="dashboard" status="normal"
-                                                    :stroke-color="status.cpu.color"
-                                                    :percent="status.cpu.percent"></a-progress>
-                                        <div>CPU: [[ status.cpu.percent.toFixed(1) ]]%</div>
-                                    </a-col>
-                                    <a-col :span="12" style="text-align: center">
-                                        <a-progress type="dashboard" status="normal"
-                                                    :stroke-color="status.mem.color"
-                                                    :percent="status.mem.percent"></a-progress>
-                                        <div>
-                                            内存: [[ sizeFormat(status.mem.current) ]] / [[ sizeFormat(status.mem.total) ]]
-                                        </div>
-                                    </a-col>
-                                </a-row>
-                            </a-col>
-                            <a-col :sm="24" :md="12">
-                                <a-row>
-                                    <a-col :span="12" style="text-align: center">
-                                        <a-progress type="dashboard" status="normal"
-                                                    :stroke-color="status.swap.color"
-                                                    :percent="status.swap.percent"></a-progress>
-                                        <div>
-                                            Swap: [[ sizeFormat(status.swap.current) ]] / [[ sizeFormat(status.swap.total) ]]
-                                        </div>
-                                    </a-col>
-                                    <a-col :span="12" style="text-align: center">
-                                        <a-progress type="dashboard" status="normal"
-                                                    :stroke-color="status.disk.color"
-                                                    :percent="status.disk.percent"></a-progress>
-                                        <div>
-                                            硬盘: [[ sizeFormat(status.disk.current) ]] / [[ sizeFormat(status.disk.total) ]]
-                                        </div>
-                                    </a-col>
-                                </a-row>
-                            </a-col>
-                        </a-row>
-                    </a-card>
-                </a-col>
+            <div class="dashboard">
+                <a-card class="hero-card" :bordered="false">
+                    <div class="hero">
+                        <div>
+                            <h1 class="hero-title">系统状态</h1>
+                            <div class="hero-subtitle">实时监控面板、Xray、资源占用、业务规模和流量趋势</div>
+                        </div>
+                        <div class="hero-actions">
+                            <a-button icon="reload" :loading="refreshing" @click="refreshAll">刷新</a-button>
+                            <a-button icon="history" @click="loadDashboard">刷新趋势</a-button>
+                            <a-button type="primary" icon="swap" @click="openSelectV2rayVersion">切换 Xray 版本</a-button>
+                        </div>
+                    </div>
+                </a-card>
+
+                <a-row :gutter="[16, 16]">
+                    <a-col :xs="24" :sm="12" :lg="6" v-for="item in topMetrics" :key="item.key">
+                        <a-card class="metric-card">
+                            <div class="metric-title"><a-icon :type="item.icon" />[[ item.title ]]</div>
+                            <div class="metric-value mono">[[ item.value ]]</div>
+                            <div class="metric-extra">[[ item.extra ]]</div>
+                        </a-card>
+                    </a-col>
                 </a-row>
-            </transition>
-            <transition name="list" appear>
-                <a-row :gutter="[10, 10]" class="stat-row-grid">
-                    <a-col :sm="24" :md="12">
-                        <a-card class="stat-card">
-                            <div class="xray-status-bar">
-                                <span>xray 状态:</span>
-                                <a-tag :color="status.xray.color">[[ status.xray.state ]]</a-tag>
+
+                <a-row :gutter="[16, 16]">
+                    <a-col :xs="24" :lg="16">
+                        <a-card title="资源使用" :loading="refreshing && !statusReady">
+                            <a-row :gutter="[16, 16]">
+                                <a-col :xs="24" :md="12" v-for="resource in resources" :key="resource.key">
+                                    <div class="resource-card">
+                                        <div class="resource-head">
+                                            <span class="resource-name">[[ resource.name ]]</span>
+                                            <span class="resource-value mono">[[ resource.percent ]]%</span>
+                                        </div>
+                                        <a-progress :percent="resource.percent" :stroke-color="resource.color" :show-info="false" />
+                                        <div class="metric-extra">[[ resource.detail ]]</div>
+                                    </div>
+                                </a-col>
+                            </a-row>
+                        </a-card>
+                    </a-col>
+                    <a-col :xs="24" :lg="8">
+                        <a-card title="Xray 服务">
+                            <div class="service-state">
+                                <a-tag :color="status.xray.color">[[ status.xray.label ]]</a-tag>
+                                <a-tag color="green">[[ status.xray.version || 'Unknown' ]]</a-tag>
                                 <a-tooltip v-if="status.xray.state === State.Error">
-                                    <template slot="title">
-                                        <p v-for="line in status.xray.errorMsg.split('\n')">[[ line ]]</p>
-                                    </template>
-                                    <a-icon type="question-circle" theme="filled" style="color: #ff4d4f; cursor: pointer;"></a-icon>
-                                </a-tooltip>
-                                <a-tag color="green">[[ status.xray.version ]]</a-tag>
-                                <a-button size="small" type="link" @click="openSelectV2rayVersion">切换版本</a-button>
-                            </div>
-                        </a-card>
-                    </a-col>
-                    <a-col :sm="24" :md="12">
-                        <a-card class="stat-card">
-                            <div class="xray-status-bar">
-                                <span>运行时间:</span>
-                                <a-tag color="#87d068">[[ formatSecond(status.uptime) ]]</a-tag>
-                                <a-tooltip>
-                                    <template slot="title">系统自启动以来的运行时间</template>
-                                    <a-icon type="question-circle" theme="filled"></a-icon>
+                                    <template slot="title"><p v-for="line in status.xray.errorMsg.split('\n')">[[ line ]]</p></template>
+                                    <a-icon type="question-circle" theme="filled" style="color:#ff4d4f" />
                                 </a-tooltip>
                             </div>
-                        </a-card>
-                    </a-col>
-                    <a-col :sm="24" :md="12">
-                        <a-card class="stat-card">
-                            系统负载: [[ status.loads[0] ]] | [[ status.loads[1] ]] | [[ status.loads[2] ]]
-                        </a-card>
-                    </a-col>
-                    <a-col :sm="24" :md="12">
-                        <a-card class="stat-card">
-                            tcp / udp 连接数: [[ status.tcpCount ]] / [[ status.udpCount ]]
-                            <a-tooltip>
-                                <template slot="title">所有网卡的总连接数</template>
-                                <a-icon type="question-circle" theme="filled"></a-icon>
-                            </a-tooltip>
-                        </a-card>
-                    </a-col>
-                    <a-col :sm="24" :md="12">
-                        <a-card class="stat-card">
-                            <table class="network-table">
-                                <tr>
-                                    <td>
-                                        <span class="network-cell">
-                                            <span class="stat-label"><a-icon type="arrow-up" class="stat-up" /> 上传</span>
-                                            <span class="stat-value stat-up">[[ sizeFormat(status.netIO.up) ]]/s</span>
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span class="network-cell">
-                                            <span class="stat-label"><a-icon type="arrow-down" class="stat-down" /> 下载</span>
-                                            <span class="stat-value stat-down">[[ sizeFormat(status.netIO.down) ]]/s</span>
-                                        </span>
-                                    </td>
-                                </tr>
-                            </table>
-                            <div class="stat-card-title">网络速度</div>
-                        </a-card>
-                    </a-col>
-                    <a-col :sm="24" :md="12">
-                        <a-card class="stat-card">
-                            <table class="network-table">
-                                <tr>
-                                    <td>
-                                        <span class="network-cell">
-                                            <span class="stat-label"><a-icon type="cloud-upload" class="stat-up" /> 上传</span>
-                                            <span class="stat-value stat-up">[[ sizeFormat(status.netTraffic.sent) ]]</span>
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span class="network-cell">
-                                            <span class="stat-label"><a-icon type="cloud-download" class="stat-down" /> 下载</span>
-                                            <span class="stat-value stat-down">[[ sizeFormat(status.netTraffic.recv) ]]</span>
-                                        </span>
-                                    </td>
-                                </tr>
-                            </table>
-                            <div class="stat-card-title">网络流量</div>
+                            <a-divider />
+                            <a-descriptions :column="1" size="small">
+                                <a-descriptions-item label="系统运行">[[ formatSecond(status.uptime) ]]</a-descriptions-item>
+                                <a-descriptions-item label="系统负载">[[ status.loads.join(' / ') ]]</a-descriptions-item>
+                                <a-descriptions-item label="TCP / UDP">[[ status.tcpCount ]] / [[ status.udpCount ]]</a-descriptions-item>
+                                <a-descriptions-item label="更新时间">[[ lastUpdated || '-' ]]</a-descriptions-item>
+                            </a-descriptions>
                         </a-card>
                     </a-col>
                 </a-row>
-            </transition>
+
+                <a-row :gutter="[16, 16]">
+                    <a-col :xs="24" :lg="14">
+                        <a-card title="7 天流量趋势">
+                            <div v-if="trafficBars.length > 0" class="traffic-chart">
+                                <a-tooltip v-for="bar in trafficBars" :key="bar.key">
+                                    <template slot="title">[[ bar.time ]] 上传 [[ sizeFormat(bar.up) ]] / 下载 [[ sizeFormat(bar.down) ]]</template>
+                                    <div class="traffic-bar">
+                                        <div class="traffic-up" :style="{height: bar.upHeight + '%'}"></div>
+                                        <div class="traffic-down" :style="{height: bar.downHeight + '%'}"></div>
+                                    </div>
+                                </a-tooltip>
+                            </div>
+                            <a-empty v-else description="暂无流量历史" />
+                            <div class="metric-extra">绿色为上传，蓝色为下载；数据由后台定时任务记录</div>
+                        </a-card>
+                    </a-col>
+                    <a-col :xs="24" :lg="10">
+                        <a-card title="业务概览">
+                            <a-row :gutter="[12, 12]">
+                                <a-col :span="12" v-for="item in businessMetrics" :key="item.key">
+                                    <a-statistic :title="item.title" :value="item.value" :suffix="item.suffix" />
+                                </a-col>
+                            </a-row>
+                        </a-card>
+                    </a-col>
+                </a-row>
+
+                <a-card title="快捷操作">
+                    <div class="quick-grid">
+                        <a class="quick-link" :href="basePath + 'xui/inbounds'"><span><a-icon type="user" /> 入站管理</span><a-icon type="right" /></a>
+                        <a class="quick-link" :href="basePath + 'xui/proxy-users'"><span><a-icon type="team" /> 代理用户</span><a-icon type="right" /></a>
+                        <a class="quick-link" :href="basePath + 'xui/routes'"><span><a-icon type="branches" /> 路由规则</span><a-icon type="right" /></a>
+                        <a class="quick-link" :href="basePath + 'xui/endpoints'"><span><a-icon type="api" /> Endpoint / WARP</span><a-icon type="right" /></a>
+                        <a class="quick-link" :href="basePath + 'xui/certificates'"><span><a-icon type="safety-certificate" /> 证书管理</span><a-icon type="right" /></a>
+                        <a class="quick-link" :href="basePath + 'xui/logs'"><span><a-icon type="file-text" /> 面板日志</span><a-icon type="right" /></a>
+                    </div>
+                </a-card>
+            </div>
         </a-layout-content>
     </a-layout>
     <div v-if="versionModal.visible" class="version-dialog-mask" @click.self="versionModal.hide()">
         <div class="version-dialog">
             <div class="version-dialog-header">
                 <h3 class="version-dialog-title">切换 Xray 版本</h3>
-                <button type="button" class="ant-modal-close" aria-label="Close" @click="versionModal.hide()">
-                    <span class="ant-modal-close-x"><a-icon type="close" /></span>
-                </button>
+                <button type="button" class="ant-modal-close" aria-label="Close" @click="versionModal.hide()"><span class="ant-modal-close-x"><a-icon type="close" /></span></button>
             </div>
             <div class="version-dialog-body">
                 <a-alert message="请谨慎选择，旧版本可能配置不兼容" type="warning" show-icon style="margin-bottom: 16px;" />
                 <a-alert v-if="versionModal.error" :message="versionModal.error" type="error" show-icon style="margin-bottom: 16px;" />
-                <div v-if="versionCount > 0" style="font-size: 12px; color: rgba(0,0,0,0.45); margin-bottom: 8px;">
-                    已获取 [[ versionCount ]] 个版本 [[ versionModal.loadedAt ? '，更新时间：' + versionModal.loadedAt : '' ]]
-                </div>
-                <div v-if="versionCount === 0" style="color: rgba(0,0,0,0.45); text-align: center; padding: 24px 0;">
-                    暂无可用版本，请稍后重试或检查服务器 GitHub 访问
-                </div>
+                <div v-if="versionCount > 0" class="metric-extra" style="margin-bottom: 8px;">已获取 [[ versionCount ]] 个版本 [[ versionModal.loadedAt ? '，更新时间：' + versionModal.loadedAt : '' ]]</div>
+                <a-empty v-if="versionCount === 0" description="暂无可用版本，请稍后重试或检查服务器 GitHub 访问" />
                 <select v-if="versionCount > 0" v-model="versionModal.selected" class="version-select">
-                    <option v-for="version in versionModal.versions" :key="version" :value="version">
-                        [[ version ]][[ version === status.xray.version ? '（当前）' : '' ]]
-                    </option>
+                    <option v-for="version in versionModal.versions" :key="version" :value="version">[[ version ]][[ version === status.xray.version ? '（当前）' : '' ]]</option>
                 </select>
                 <div v-if="versionCount > 0" class="version-list">
-                    <a-button v-for="version in versionModal.versions" :key="version"
-                              size="small"
-                              :type="version === versionModal.selected ? 'primary' : 'default'"
-                              @click="versionModal.selected = version">
-                        [[ version ]]
-                        <a-icon v-if="version === status.xray.version" type="check-circle" />
+                    <a-button v-for="version in versionModal.versions" :key="version" size="small" :type="version === versionModal.selected ? 'primary' : 'default'" @click="versionModal.selected = version">
+                        [[ version ]] <a-icon v-if="version === status.xray.version" type="check-circle" />
                     </a-button>
                 </div>
             </div>
             <div class="version-dialog-footer">
                 <a-button @click="versionModal.hide()">取消</a-button>
-                <a-button type="primary" :loading="versionModal.installing" :disabled="!versionModal.selected || versionModal.selected === status.xray.version" @click="installSelectedXrayVersion">
-                    安装选中版本
-                </a-button>
+                <a-button type="primary" :loading="versionModal.installing" :disabled="!versionModal.selected || versionModal.selected === status.xray.version" @click="installSelectedXrayVersion">安装选中版本</a-button>
             </div>
         </div>
     </div>
 </a-layout>
 {{template "js" .}}
 <script nonce="{{ .csp_nonce }}">
-
-    const State = {
-        Running: "running",
-        Stop: "stop",
-        Error: "error",
-    }
+    const State = { Running: 'running', Stop: 'stop', Error: 'error' };
     Object.freeze(State);
 
     class CurTotal {
-
-        constructor(current, total) {
-            this.current = current;
-            this.total = total;
-        }
-
-        get percent() {
-            if (this.total === 0) {
-                return 0;
-            }
-            return toFixed(this.current / this.total * 100, 2);
-        }
-
-        get color() {
-            const percent = this.percent;
-            if (percent < 80) {
-                return '#67C23A';
-            } else if (percent < 90) {
-                return '#E6A23C';
-            } else {
-                return '#F56C6C';
-            }
-        }
+        constructor(current, total) { this.current = current || 0; this.total = total || 0; }
+        get percent() { return this.total === 0 ? 0 : toFixed(this.current / this.total * 100, 1); }
+        get color() { return percentColor(this.percent); }
     }
 
     class Status {
         constructor(data) {
-            this.cpu = new CurTotal(0, 0);
+            this.cpu = new CurTotal(0, 100);
             this.disk = new CurTotal(0, 0);
             this.loads = [0, 0, 0];
             this.mem = new CurTotal(0, 0);
@@ -379,35 +196,23 @@
             this.tcpCount = 0;
             this.udpCount = 0;
             this.uptime = 0;
-            this.xray = {state: State.Stop, errorMsg: "", version: "", color: ""};
-
-            if (data == null) {
-                return;
-            }
-            this.cpu = new CurTotal(data.cpu, 100);
+            this.xray = {state: State.Stop, errorMsg: '', version: '', color: 'orange', label: '已停止'};
+            if (!data) return;
+            this.cpu = new CurTotal(data.cpu || 0, 100);
             this.disk = new CurTotal(data.disk.current, data.disk.total);
-            this.loads = data.loads.map(load => toFixed(load, 2));
+            this.loads = (data.loads || [0, 0, 0]).map(load => toFixed(load, 2));
             this.mem = new CurTotal(data.mem.current, data.mem.total);
-            this.netIO = data.netIO;
-            this.netTraffic = data.netTraffic;
+            this.netIO = data.netIO || this.netIO;
+            this.netTraffic = data.netTraffic || this.netTraffic;
             this.swap = new CurTotal(data.swap.current, data.swap.total);
-            this.tcpCount = data.tcpCount;
-            this.udpCount = data.udpCount;
-            this.uptime = data.uptime;
-            this.xray = data.xray;
-            switch (this.xray.state) {
-                case State.Running:
-                    this.xray.color = "green";
-                    break;
-                case State.Stop:
-                    this.xray.color = "orange";
-                    break;
-                case State.Error:
-                    this.xray.color = "red";
-                    break;
-                default:
-                    this.xray.color = "gray";
-            }
+            this.tcpCount = data.tcpCount || 0;
+            this.udpCount = data.udpCount || 0;
+            this.uptime = data.uptime || 0;
+            this.xray = Object.assign(this.xray, data.xray || {});
+            const map = { running: ['green', '运行中'], stop: ['orange', '已停止'], error: ['red', '异常'] };
+            const state = map[this.xray.state] || ['gray', '未知'];
+            this.xray.color = state[0];
+            this.xray.label = state[1];
         }
     }
 
@@ -426,41 +231,89 @@
             this.error = error;
             this.loadedAt = this.versions.length > 0 ? moment().format('HH:mm:ss') : '';
         },
-        hide() {
-            this.visible = false;
-            this.error = '';
-            this.installing = false;
-        },
+        hide() { this.visible = false; this.error = ''; this.installing = false; },
     };
+
+    function percentColor(percent) {
+        if (percent < 70) return '#52c41a';
+        if (percent < 85) return '#faad14';
+        return '#ff4d4f';
+    }
 
     const app = new Vue({
         delimiters: ['[[', ']]'],
         el: '#app',
         data: {
+            State,
             siderDrawer,
+            basePath,
             status: new Status(),
+            dashboard: { summary: {}, history: [] },
             versionModal,
-            spinning: false,
-            loadingTip: '加载中',
+            refreshing: false,
+            statusReady: false,
+            lastUpdated: '',
         },
         computed: {
-            versionCount() {
-                return Array.isArray(this.versionModal.versions) ? this.versionModal.versions.length : 0;
+            versionCount() { return Array.isArray(this.versionModal.versions) ? this.versionModal.versions.length : 0; },
+            summary() { return this.dashboard.summary || {}; },
+            topMetrics() {
+                return [
+                    { key: 'xray', icon: 'thunderbolt', title: 'Xray 状态', value: this.status.xray.label, extra: this.status.xray.version || 'Unknown' },
+                    { key: 'speed', icon: 'rocket', title: '实时速度', value: sizeFormat(this.status.netIO.up + this.status.netIO.down) + '/s', extra: '上行 ' + sizeFormat(this.status.netIO.up) + '/s，下行 ' + sizeFormat(this.status.netIO.down) + '/s' },
+                    { key: 'traffic', icon: 'bar-chart', title: '累计业务流量', value: sizeFormat((this.summary.totalUp || 0) + (this.summary.totalDown || 0)), extra: '上传 ' + sizeFormat(this.summary.totalUp || 0) + '，下载 ' + sizeFormat(this.summary.totalDown || 0) },
+                    { key: 'uptime', icon: 'clock-circle', title: '系统运行时间', value: formatSecond(this.status.uptime), extra: '负载 ' + this.status.loads.join(' / ') },
+                ];
+            },
+            resources() {
+                return [
+                    { key: 'cpu', name: 'CPU', percent: this.status.cpu.percent, color: this.status.cpu.color, detail: '当前占用 ' + this.status.cpu.percent + '%' },
+                    { key: 'mem', name: '内存', percent: this.status.mem.percent, color: this.status.mem.color, detail: sizeFormat(this.status.mem.current) + ' / ' + sizeFormat(this.status.mem.total) },
+                    { key: 'swap', name: 'Swap', percent: this.status.swap.percent, color: this.status.swap.color, detail: sizeFormat(this.status.swap.current) + ' / ' + sizeFormat(this.status.swap.total) },
+                    { key: 'disk', name: '磁盘', percent: this.status.disk.percent, color: this.status.disk.color, detail: sizeFormat(this.status.disk.current) + ' / ' + sizeFormat(this.status.disk.total) },
+                ];
+            },
+            businessMetrics() {
+                return [
+                    { key: 'inbounds', title: '入站', value: this.summary.enabledInbound || 0, suffix: '/ ' + (this.summary.inbounds || 0) },
+                    { key: 'users', title: '代理用户', value: this.summary.enabledUsers || 0, suffix: '/ ' + (this.summary.proxyUsers || 0) },
+                    { key: 'routes', title: '路由规则', value: this.summary.enabledRules || 0, suffix: '/ ' + (this.summary.routeRules || 0) },
+                    { key: 'endpoints', title: 'Endpoint', value: this.summary.enabledEndpoints || 0, suffix: '/ ' + (this.summary.endpoints || 0) },
+                    { key: 'certificates', title: '证书', value: this.summary.certificates || 0, suffix: '' },
+                    { key: 'connections', title: '连接', value: this.status.tcpCount + this.status.udpCount, suffix: '' },
+                ];
+            },
+            trafficBars() {
+                const history = this.dashboard.history || [];
+                if (history.length === 0) return [];
+                const max = Math.max(...history.map(item => Math.max(item.up || 0, item.down || 0)), 1);
+                return history.slice(-48).map(item => ({
+                    key: item.id || item.recordAt,
+                    up: item.up || 0,
+                    down: item.down || 0,
+                    upHeight: Math.max(2, Math.round((item.up || 0) / max * 100)),
+                    downHeight: Math.max(2, Math.round((item.down || 0) / max * 100)),
+                    time: item.recordAt ? moment(item.recordAt * 1000).format('MM-DD HH:mm') : '-',
+                }));
             },
         },
         methods: {
-            loading(spinning, tip = '加载中') {
-                this.spinning = spinning;
-                this.loadingTip = tip;
+            async refreshAll() {
+                this.refreshing = true;
+                await Promise.all([this.getStatus(), this.loadDashboard()]);
+                this.refreshing = false;
             },
             async getStatus() {
                 const msg = await HttpUtil.post('/server/status');
                 if (msg.success) {
-                    this.setStatus(msg.obj);
+                    this.status = new Status(msg.obj);
+                    this.statusReady = true;
+                    this.lastUpdated = moment().format('HH:mm:ss');
                 }
             },
-            setStatus(data) {
-                this.status = new Status(data);
+            async loadDashboard() {
+                const msg = await HttpUtil.post('/server/dashboard');
+                if (msg.success) this.dashboard = msg.obj || { summary: {}, history: [] };
             },
             normalizeVersionList(msg) {
                 if (!msg) return [];
@@ -470,51 +323,43 @@
                 return [];
             },
             async openSelectV2rayVersion() {
-                this.loading(true);
+                this.refreshing = true;
                 const msg = await HttpUtil.post('/server/getXrayVersion');
-                this.loading(false);
+                this.refreshing = false;
                 const versions = this.normalizeVersionList(msg);
                 if (versions.length === 0) {
                     versionModal.show([], this.status.xray.version, msg && msg.msg ? msg.msg : '获取 Xray 版本失败或版本列表为空');
                     return;
                 }
-                console.log('xray versions loaded:', versions.length, versions);
                 this.$message.success(`已获取 ${versions.length} 个 Xray 版本`);
                 versionModal.show(versions, this.status.xray.version);
             },
             async installSelectedXrayVersion() {
                 const version = versionModal.selected;
-                if (!version || version === this.status.xray.version) {
-                    return;
-                }
+                if (!version || version === this.status.xray.version) return;
                 versionModal.installing = true;
                 const msg = await HttpUtil.post(`/server/installXray/${version}`);
                 versionModal.installing = false;
                 if (msg.success) {
                     versionModal.hide();
-                    await this.getStatus();
+                    await this.refreshAll();
                 } else {
                     versionModal.error = msg.msg || '安装 Xray 失败';
                 }
             },
         },
         async mounted() {
+            await this.refreshAll();
             while (true) {
                 try {
-                    // 页面不可见时降低轮询频率
-                    if (document.hidden) {
-                        await PromiseUtil.sleep(5000);
-                        continue;
-                    }
-                    await this.getStatus();
+                    await PromiseUtil.sleep(document.hidden ? 8000 : 2000);
+                    if (!document.hidden) await this.getStatus();
                 } catch (e) {
                     console.error(e);
                 }
-                await PromiseUtil.sleep(2000);
             }
         },
     });
-
 </script>
 </body>
 </html>

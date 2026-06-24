@@ -5,6 +5,11 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
+	"x-ui/database/model"
+
+	"github.com/glebarez/sqlite"
+	"gorm.io/gorm"
 )
 
 func TestReadConfiguredLogTailDisabled(t *testing.T) {
@@ -87,5 +92,54 @@ func TestClampLogReadLimit(t *testing.T) {
 	}
 	if got := clampLogReadLimit(123); got != 123 {
 		t.Fatalf("unexpected custom limit: %d", got)
+	}
+}
+
+func TestBuildDashboardResponse(t *testing.T) {
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := db.AutoMigrate(&model.Inbound{}, &model.ProxyUser{}, &model.Certificate{}, &model.RouteRule{}, &model.Endpoint{}, &model.TrafficHistory{}); err != nil {
+		t.Fatal(err)
+	}
+	now := time.Now().Unix()
+	if err := db.Create(&model.Inbound{Enable: true, Up: 100, Down: 200, Port: 10001, Tag: "in-1"}).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&model.Inbound{Enable: false, Up: 10, Down: 20, Port: 10002, Tag: "in-2"}).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&model.ProxyUser{Name: "u1", Enable: true, Token: "t1"}).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&model.RouteRule{Name: "r1", Enable: true, OutboundTag: "direct"}).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&model.Endpoint{Name: "e1", Enable: true, Type: "custom", Tag: "out"}).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&model.Certificate{Name: "c1", CertFile: "cert", KeyFile: "key"}).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&model.TrafficHistory{Up: 110, Down: 220, RecordAt: now}).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	response, err := buildDashboardResponse(db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if response.Summary.Inbounds != 2 || response.Summary.EnabledInbound != 1 {
+		t.Fatalf("unexpected inbound summary: %#v", response.Summary)
+	}
+	if response.Summary.TotalUp != 110 || response.Summary.TotalDown != 220 {
+		t.Fatalf("unexpected traffic totals: %#v", response.Summary)
+	}
+	if response.Summary.EnabledUsers != 1 || response.Summary.EnabledRules != 1 || response.Summary.EnabledEndpoints != 1 || response.Summary.Certificates != 1 {
+		t.Fatalf("unexpected business summary: %#v", response.Summary)
+	}
+	if len(response.History) != 1 {
+		t.Fatalf("expected 1 history record, got %d", len(response.History))
 	}
 }

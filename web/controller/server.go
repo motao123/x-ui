@@ -17,6 +17,7 @@ import (
 	"x-ui/web/service"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 const (
@@ -51,6 +52,25 @@ type logReadResponse struct {
 	UpdatedAt int64  `json:"updatedAt"`
 }
 
+type dashboardSummary struct {
+	Inbounds         int   `json:"inbounds"`
+	EnabledInbound   int   `json:"enabledInbound"`
+	ProxyUsers       int   `json:"proxyUsers"`
+	EnabledUsers     int   `json:"enabledUsers"`
+	Certificates     int   `json:"certificates"`
+	RouteRules       int   `json:"routeRules"`
+	EnabledRules     int   `json:"enabledRules"`
+	Endpoints        int   `json:"endpoints"`
+	EnabledEndpoints int   `json:"enabledEndpoints"`
+	TotalUp          int64 `json:"totalUp"`
+	TotalDown        int64 `json:"totalDown"`
+}
+
+type dashboardResponse struct {
+	Summary dashboardSummary       `json:"summary"`
+	History []model.TrafficHistory `json:"history"`
+}
+
 func NewServerController(g *gin.RouterGroup) *ServerController {
 	a := &ServerController{
 		lastGetStatusTime: time.Now(),
@@ -72,6 +92,7 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 	g.POST("/logs/download", a.logDownload)
 	g.GET("/logs/stream", a.logStream)
 	g.GET("/backup/db", a.backupDB)
+	g.POST("/dashboard", a.dashboard)
 	g.POST("/traffic/history", a.trafficHistory)
 }
 
@@ -95,6 +116,61 @@ func (a *ServerController) status(c *gin.Context) {
 	a.lastGetStatusTime = time.Now()
 
 	jsonObj(c, a.lastStatus, nil)
+}
+
+func (a *ServerController) dashboard(c *gin.Context) {
+	db := database.GetDB()
+	response, err := buildDashboardResponse(db)
+	securityLog(c, "dashboard", err == nil)
+	jsonObj(c, response, err)
+}
+
+func buildDashboardResponse(db *gorm.DB) (dashboardResponse, error) {
+	response := dashboardResponse{}
+	var inbounds []model.Inbound
+	err := db.Find(&inbounds).Error
+	if err == nil {
+		response.Summary.Inbounds = len(inbounds)
+		for _, inbound := range inbounds {
+			if inbound.Enable {
+				response.Summary.EnabledInbound++
+			}
+			response.Summary.TotalUp += inbound.Up
+			response.Summary.TotalDown += inbound.Down
+		}
+	}
+	if err == nil {
+		response.Summary.ProxyUsers, err = countModel(db.Model(&model.ProxyUser{}))
+	}
+	if err == nil {
+		response.Summary.EnabledUsers, err = countModel(db.Model(&model.ProxyUser{}).Where("enable = ?", true))
+	}
+	if err == nil {
+		response.Summary.Certificates, err = countModel(db.Model(&model.Certificate{}))
+	}
+	if err == nil {
+		response.Summary.RouteRules, err = countModel(db.Model(&model.RouteRule{}))
+	}
+	if err == nil {
+		response.Summary.EnabledRules, err = countModel(db.Model(&model.RouteRule{}).Where("enable = ?", true))
+	}
+	if err == nil {
+		response.Summary.Endpoints, err = countModel(db.Model(&model.Endpoint{}))
+	}
+	if err == nil {
+		response.Summary.EnabledEndpoints, err = countModel(db.Model(&model.Endpoint{}).Where("enable = ?", true))
+	}
+	if err == nil {
+		since := time.Now().AddDate(0, 0, -7).Unix()
+		err = db.Where("record_at >= ?", since).Order("record_at asc").Find(&response.History).Error
+	}
+	return response, err
+}
+
+func countModel(db *gorm.DB) (int, error) {
+	var count int64
+	err := db.Count(&count).Error
+	return int(count), err
 }
 
 func (a *ServerController) getXrayVersion(c *gin.Context) {

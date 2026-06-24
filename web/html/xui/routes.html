@@ -17,7 +17,7 @@
                     <a-button icon="reload" @click="loadRules">刷新</a-button>
                     <a-button icon="check" @click="applyRules">应用规则</a-button>
                 </div>
-                <a-alert type="info" show-icon style="margin-bottom: 16px" message="规则会追加到当前 Xray 模板 routing.rules 后面，应用前会进行 Xray 配置校验。多个值用英文逗号分隔。" />
+                <a-alert type="info" show-icon style="margin-bottom: 16px" message="规则会追加到当前 Xray 模板 routing.rules 后面，应用前会进行 Xray 配置校验。多个值用英文逗号分隔。"></a-alert>
                 <a-table :columns="columns" :data-source="rules" :row-key="record => record.id" :pagination="false" size="middle">
                     <template slot="enable" slot-scope="text, record">
                         <a-tag :color="record.enable ? 'green' : 'red'">[[ record.enable ? '启用' : '禁用' ]]</a-tag>
@@ -39,14 +39,14 @@
 
     <a-modal v-model="modal.visible" :title="modal.form.id ? '编辑路由规则' : '新增路由规则'" @ok="saveRule" :confirm-loading="modal.loading" ok-text="保存" cancel-text="取消" width="720px">
         <a-form layout="vertical">
-            <a-form-item label="名称"><a-input v-model.trim="modal.form.name" /></a-form-item>
-            <a-form-item label="启用"><a-switch v-model="modal.form.enable" checked-children="启用" un-checked-children="禁用" /></a-form-item>
-            <a-form-item label="排序"><a-input-number v-model="modal.form.sort" style="width: 160px" /></a-form-item>
-            <a-form-item label="Domain 匹配"><a-input v-model.trim="modal.form.domain" placeholder="geosite:google,domain:example.com" /><div class="hint">可填 geosite、domain、full、regexp 等 Xray 支持的 domain 条件</div></a-form-item>
-            <a-form-item label="IP 匹配"><a-input v-model.trim="modal.form.ip" placeholder="geoip:private,1.1.1.1/32" /></a-form-item>
-            <a-form-item label="Protocol 匹配"><a-input v-model.trim="modal.form.protocol" placeholder="bittorrent" /></a-form-item>
-            <a-form-item label="InboundTag 匹配"><a-input v-model.trim="modal.form.inboundTag" placeholder="inbound-443" /></a-form-item>
-            <a-form-item label="OutboundTag"><a-input v-model.trim="modal.form.outboundTag" placeholder="blocked" /></a-form-item>
+            <a-form-item label="名称"><a-input v-model.trim="modal.form.name"></a-input></a-form-item>
+            <a-form-item label="启用"><a-switch v-model="modal.form.enable" checked-children="启用" un-checked-children="禁用"></a-switch></a-form-item>
+            <a-form-item label="排序"><a-input-number v-model="modal.form.sort" style="width: 160px"></a-input-number></a-form-item>
+            <a-form-item label="Domain 匹配"><a-input v-model.trim="modal.form.domain" placeholder="geosite:google,domain:example.com"></a-input><div class="hint">可填 geosite、domain、full、regexp 等 Xray 支持的 domain 条件</div></a-form-item>
+            <a-form-item label="IP 匹配"><a-input v-model.trim="modal.form.ip" placeholder="geoip:private,1.1.1.1/32"></a-input></a-form-item>
+            <a-form-item label="Protocol 匹配"><a-input v-model.trim="modal.form.protocol" placeholder="bittorrent"></a-input></a-form-item>
+            <a-form-item label="InboundTag 匹配"><a-input v-model.trim="modal.form.inboundTag" placeholder="inbound-443"></a-input></a-form-item>
+            <a-form-item label="OutboundTag"><a-input v-model.trim="modal.form.outboundTag" placeholder="blocked"></a-input></a-form-item>
         </a-form>
     </a-modal>
 </a-layout>

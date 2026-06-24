@@ -31,7 +31,7 @@
                         [[ record.expiryTime > 0 ? moment(record.expiryTime).format('YYYY-MM-DD HH:mm:ss') : '永不过期' ]]
                     </template>
                     <template slot="sub" slot-scope="text, record">
-                        <a-input class="mono" size="small" read-only :value="subscriptionUrl(record)" />
+                        <a-input class="mono" size="small" read-only :value="subscriptionUrl(record)"></a-input>
                     </template>
                     <template slot="action" slot-scope="text, record">
                         <span>
@@ -50,22 +50,22 @@
     <a-modal v-model="modal.visible" :title="modal.user.id ? '编辑代理用户' : '新增代理用户'" @ok="saveUser" :confirm-loading="modal.loading" ok-text="保存" cancel-text="取消">
         <a-form layout="vertical">
             <a-form-item label="名称">
-                <a-input v-model.trim="modal.user.name" placeholder="例如 user-001" />
+                <a-input v-model.trim="modal.user.name" placeholder="例如 user-001"></a-input>
             </a-form-item>
             <a-form-item label="状态">
-                <a-switch v-model="modal.user.enable" checked-children="启用" un-checked-children="禁用" />
+                <a-switch v-model="modal.user.enable" checked-children="启用" un-checked-children="禁用"></a-switch>
             </a-form-item>
             <a-form-item label="UUID">
-                <a-input v-model.trim="modal.user.uuid" />
+                <a-input v-model.trim="modal.user.uuid"></a-input>
             </a-form-item>
             <a-form-item label="密码 / Trojan / Shadowsocks 凭据">
-                <a-input v-model.trim="modal.user.password" />
+                <a-input v-model.trim="modal.user.password"></a-input>
             </a-form-item>
             <a-form-item label="总流量限制 GB（0 为不限）">
-                <a-input-number v-model="modal.totalGB" :min="0" style="width: 160px" />
+                <a-input-number v-model="modal.totalGB" :min="0" style="width: 160px"></a-input-number>
             </a-form-item>
             <a-form-item label="过期时间">
-                <a-date-picker v-model="modal.expiry" show-time style="width: 220px" placeholder="留空为永不过期" />
+                <a-date-picker v-model="modal.expiry" show-time style="width: 220px" placeholder="留空为永不过期"></a-date-picker>
             </a-form-item>
             <a-form-item label="绑定入站">
                 <a-select mode="multiple" v-model="modal.user.inboundIds" style="width: 100%" placeholder="选择要出现在订阅中的入站">

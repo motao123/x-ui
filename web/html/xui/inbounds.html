@@ -48,13 +48,13 @@
                     <a-card style="margin-bottom: 20px;">
                         <a-row :gutter="16">
                             <a-col :xs="24" :sm="8">
-                                <a-statistic title="总上传 / 下载" :value="sizeFormat(total.up) + ' / ' + sizeFormat(total.down)" :value-style="{ fontSize: '16px' }" />
+                                <a-statistic title="总上传 / 下载" :value="sizeFormat(total.up) + ' / ' + sizeFormat(total.down)" :value-style="{ fontSize: '16px' }"></a-statistic>
                             </a-col>
                             <a-col :xs="24" :sm="8">
-                                <a-statistic title="总用量" :value="sizeFormat(total.up + total.down)" :value-style="{ fontSize: '16px', color: '#1890ff' }" />
+                                <a-statistic title="总用量" :value="sizeFormat(total.up + total.down)" :value-style="{ fontSize: '16px', color: '#1890ff' }"></a-statistic>
                             </a-col>
                             <a-col :xs="24" :sm="8">
-                                <a-statistic title="入站数量" :value="dbInbounds.length" :value-style="{ fontSize: '16px', color: '#52c41a' }" />
+                                <a-statistic title="入站数量" :value="dbInbounds.length" :value-style="{ fontSize: '16px', color: '#52c41a' }"></a-statistic>
                             </a-col>
                         </a-row>
                     </a-card>
@@ -149,22 +149,22 @@
     <a-modal v-model="quickModal.visible" title="一键 VLESS Reality 节点" @ok="createQuickReality" :confirm-loading="quickModal.loading" ok-text="创建" cancel-text="取消">
         <a-form layout="vertical">
             <a-form-item label="备注">
-                <a-input v-model.trim="quickModal.form.remark" placeholder="VLESS Reality" />
+                <a-input v-model.trim="quickModal.form.remark" placeholder="VLESS Reality"></a-input>
             </a-form-item>
             <a-form-item label="端口（0 为随机）">
-                <a-input-number v-model="quickModal.form.port" :min="0" :max="65535" style="width: 160px" />
+                <a-input-number v-model="quickModal.form.port" :min="0" :max="65535" style="width: 160px"></a-input-number>
             </a-form-item>
             <a-form-item label="Reality dest">
-                <a-input v-model.trim="quickModal.form.dest" placeholder="www.microsoft.com:443" />
+                <a-input v-model.trim="quickModal.form.dest" placeholder="www.microsoft.com:443"></a-input>
             </a-form-item>
             <a-form-item label="Reality serverName">
-                <a-input v-model.trim="quickModal.form.serverName" placeholder="www.microsoft.com" />
+                <a-input v-model.trim="quickModal.form.serverName" placeholder="www.microsoft.com"></a-input>
             </a-form-item>
             <a-form-item label="同时创建代理用户">
-                <a-switch v-model="quickModal.form.createProxyUser" checked-children="是" un-checked-children="否" />
+                <a-switch v-model="quickModal.form.createProxyUser" checked-children="是" un-checked-children="否"></a-switch>
             </a-form-item>
             <a-form-item v-if="quickModal.form.createProxyUser" label="代理用户名称">
-                <a-input v-model.trim="quickModal.form.proxyUserName" placeholder="留空使用备注" />
+                <a-input v-model.trim="quickModal.form.proxyUserName" placeholder="留空使用备注"></a-input>
             </a-form-item>
         </a-form>
     </a-modal>

@@ -30,9 +30,9 @@
     {{ template "commonSider" . }}
     <a-layout id="content-layout">
         <a-layout-content>
-            <a-spin :spinning="spinning" :delay="200" tip="加载中"/>
-            <transition name="list" appear>
-                <a-card title="面板日志">
+            <a-spin :spinning="spinning" :delay="200" tip="加载中">
+                <transition name="list" appear>
+                    <a-card title="面板日志">
                     <div class="log-toolbar">
                         <a-select v-model="limit" style="width: 130px" @change="refresh">
                             <a-select-option :value="64 * 1024">最近 64 KB</a-select-option>
@@ -41,23 +41,24 @@
                         </a-select>
                         <a-button type="primary" icon="reload" @click="refresh">刷新</a-button>
                         <a-button icon="download" :disabled="!log.enabled || !log.content" @click="download">下载当前内容</a-button>
-                        <a-switch v-model="liveFollow" checked-children="实时" un-checked-children="暂停" @change="toggleLive" :disabled="!log.enabled"/>
+                        <a-switch v-model="liveFollow" checked-children="实时" un-checked-children="暂停" @change="toggleLive" :disabled="!log.enabled"></a-switch>
                     </div>
 
                     <a-alert v-if="!log.enabled" type="info" show-icon
                              message="未启用面板文件日志"
-                             description="请设置 XUI_LOG_FILE 环境变量并重启面板后再查看日志。"/>
+                             description="请设置 XUI_LOG_FILE 环境变量并重启面板后再查看日志。"></a-alert>
                     <template v-else>
                         <a-alert v-if="log.truncated" type="warning" show-icon style="margin-bottom: 12px"
                                  message="日志内容已截断"
-                                 :description="`当前只显示 ${sizeFormat(log.offset)} 之后的 ${sizeFormat(log.size - log.offset)} 内容。`"/>
+                                 :description="`当前只显示 ${sizeFormat(log.offset)} 之后的 ${sizeFormat(log.size - log.offset)} 内容。`"></a-alert>
                         <div class="log-meta">
                             文件：[[ log.fileName ]] | 大小：[[ sizeFormat(log.size) ]] | 更新时间：[[ formatTime(log.updatedAt) ]]
                         </div>
                         <a-input class="log-content" type="textarea" :rows="28" read-only v-model="log.content"></a-input>
                     </template>
-                </a-card>
-            </transition>
+                    </a-card>
+                </transition>
+            </a-spin>
         </a-layout-content>
     </a-layout>
 </a-layout>

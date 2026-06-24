@@ -23,7 +23,7 @@
     </a-form-item>
 </a-form>
 <a-alert v-if="inbound.protocol === Protocols.TROJAN && inbound.tls" type="warning" show-icon style="margin-bottom: 12px"
-         message="Xray 26.3.27 已移除 allowInsecure；Trojan TLS 客户端需要受信任证书或证书 pinning"/>
+         message="Xray 26.3.27 已移除 allowInsecure；Trojan TLS 客户端需要受信任证书或证书 pinning"></a-alert>
 
 <!-- reality settings -->
 <a-form v-if="inbound.reality" layout="inline">
@@ -35,12 +35,12 @@
     </a-form-item>
     <a-form-item label="privateKey">
         <a-input v-model.trim="inbound.stream.reality.privateKey">
-            <a-icon slot="addonAfter" type="sync" @click="genX25519" style="cursor:pointer;" title="一键生成密钥对"/>
+            <a-icon slot="addonAfter" type="sync" @click="genX25519" style="cursor:pointer;" title="一键生成密钥对"></a-icon>
         </a-input>
     </a-form-item>
     <a-form-item label="publicKey">
         <a-input v-model.trim="inbound.stream.reality.publicKey" placeholder="用于分享链接 pbk">
-            <a-icon slot="addonAfter" type="sync" @click="genX25519" style="cursor:pointer;" title="一键生成密钥对"/>
+            <a-icon slot="addonAfter" type="sync" @click="genX25519" style="cursor:pointer;" title="一键生成密钥对"></a-icon>
         </a-input>
     </a-form-item>
     <a-form-item label="shortIds">

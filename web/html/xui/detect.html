@@ -2,154 +2,126 @@
 <html lang="en">
 {{template "head" .}}
 <style>
-    @media (min-width: 769px) {
-        .ant-layout-content {
-            margin: 24px 16px;
-        }
-    }
-    .detect-toolbar {
-        display: flex;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 8px;
-        margin-bottom: 16px;
-    }
-    .detect-meta {
-        color: rgba(0, 0, 0, 0.45);
-        margin-top: 8px;
-    }
-    .detect-value {
-        font-weight: 500;
-        word-break: break-all;
-    }
-    .detect-card {
-        margin-bottom: 16px;
-    }
-    .detect-info-row {
-        display: flex;
-        padding: 8px 0;
-        border-bottom: 1px solid #f0f0f0;
-    }
-    .detect-info-row:last-child {
-        border-bottom: none;
-    }
-    .detect-info-label {
-        flex: 0 0 88px;
-        color: rgba(0, 0, 0, 0.45);
-    }
+    @media (min-width: 769px) { .ant-layout-content { margin: 24px 16px; } }
+    .detect-hero { margin-bottom: 16px; }
+    .detect-title { margin: 0; font-size: 26px; font-weight: 700; }
+    .detect-subtitle { color: rgba(0,0,0,.45); margin-top: 6px; }
+    .detect-toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; align-items: center; }
+    .score-wrap { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+    .score-circle { width: 104px; height: 104px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #1890ff, #52c41a); color: #fff; box-shadow: 0 8px 24px rgba(24,144,255,.25); }
+    .score-number { font-size: 34px; font-weight: 700; line-height: 1; }
+    .score-label { font-size: 13px; opacity: .9; text-align: center; margin-top: 4px; }
+    .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+    .metric-card { border: 1px solid #f0f0f0; border-radius: 8px; padding: 14px; min-height: 96px; }
+    .metric-title { display: flex; align-items: center; justify-content: space-between; color: rgba(0,0,0,.45); }
+    .metric-value { margin-top: 10px; font-size: 20px; font-weight: 600; word-break: break-all; }
+    .metric-hint { margin-top: 6px; color: rgba(0,0,0,.45); font-size: 12px; word-break: break-all; }
+    .detect-card { margin-bottom: 16px; }
+    .ip-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+    .ip-item { padding: 10px 0; border-bottom: 1px solid #f5f5f5; }
+    .ip-label { color: rgba(0,0,0,.45); font-size: 12px; }
+    .ip-value { margin-top: 4px; font-weight: 600; word-break: break-all; }
+    .platform-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+    .platform-card { border: 1px solid #f0f0f0; border-radius: 8px; padding: 12px; transition: all .2s; }
+    .platform-card:hover { border-color: #1890ff; box-shadow: 0 4px 16px rgba(24,144,255,.08); }
+    .platform-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .platform-name { font-weight: 600; }
+    .platform-hint { margin-top: 8px; color: rgba(0,0,0,.45); font-size: 12px; min-height: 34px; }
+    .platform-meta { margin-top: 8px; color: rgba(0,0,0,.35); font-size: 12px; }
+    .suggestion-list { margin: 0; padding-left: 18px; }
+    .suggestion-list li { margin: 6px 0; }
+    .route-line { font-weight: 600; }
 </style>
 <body>
 <a-layout id="app" v-cloak>
     {{ template "commonSider" . }}
     <a-layout id="content-layout">
         <a-layout-content>
-            <a-spin :spinning="spinningIP || spinningUnlock || spinningProtocols || spinningBackRoute" :delay="200" tip="检测中"/>
-            <transition name="list" appear>
-                <div>
-                    <a-card class="detect-card" title="网络检测">
+            <a-card class="detect-hero">
+                <a-row :gutter="16" type="flex" align="middle">
+                    <a-col :xs="24" :lg="16">
+                        <h1 class="detect-title">网络体检</h1>
+                        <div class="detect-subtitle">统一检测出口 IP、平台可达性、Xray 协议配置和三网回程质量</div>
                         <div class="detect-toolbar">
-                            <a-button type="primary" icon="thunderbolt" @click="detectAll">全部检测</a-button>
-                            <a-button icon="global" @click="detectIP">检测 IP</a-button>
-                            <a-button icon="api" @click="detectUnlock">检测解锁</a-button>
-                            <a-button icon="check-circle" @click="detectProtocols">检测现有协议</a-button>
-                            <a-button icon="fork" @click="detectBackRoute">回程路由</a-button>
+                            <a-button type="primary" icon="thunderbolt" :loading="loading.overview" @click="detectOverview">一键体检</a-button>
+                            <a-button icon="global" :loading="loading.ip" @click="detectIP">仅检测 IP</a-button>
+                            <a-button icon="api" :loading="loading.unlock" @click="detectUnlock">仅检测平台</a-button>
+                            <a-button icon="check-circle" :loading="loading.protocols" @click="detectProtocols">校验协议</a-button>
+                            <a-button icon="fork" :loading="loading.backRoute" @click="detectBackRoute">检测回程</a-button>
                             <a-checkbox v-model="force">强制刷新缓存</a-checkbox>
                         </div>
-                        <a-alert type="info" show-icon
-                                 message="检测从服务器发起"
-                                 description="结果表示当前 VPS 到外部平台的网络可达性和地区信息，外部平台策略变化可能导致结果仅供参考。"/>
-                    </a-card>
+                    </a-col>
+                    <a-col :xs="24" :lg="8">
+                        <div class="score-wrap">
+                            <div class="score-circle"><div><div class="score-number">[[ overview.score ]]</div><div class="score-label">[[ overview.level ]]</div></div></div>
+                            <div>
+                                <a-tag :color="scoreColor(overview.score)">[[ scoreText(overview.score) ]]</a-tag>
+                                <div class="detect-subtitle">最后检测：[[ formatTime(overview.checkedAt) ]]</div>
+                            </div>
+                        </div>
+                    </a-col>
+                </a-row>
+            </a-card>
 
-                    <a-row :gutter="16">
-                        <a-col :xs="24" :lg="10">
-                            <a-card class="detect-card" title="IP 信息">
-                                <template v-if="ip.checkedAt || ip.error">
-                                    <a-alert v-if="ip.error" type="warning" show-icon style="margin-bottom: 12px"
-                                             :message="ip.error"/>
-                                    <div>
-                                        <div class="detect-info-row">
-                                            <span class="detect-info-label">IP</span>
-                                            <span class="detect-value">[[ ip.ip || '-' ]]</span>
-                                        </div>
-                                        <div class="detect-info-row">
-                                            <span class="detect-info-label">国家/城市</span>
-                                            <span>[[ ip.country || '-' ]] [[ ip.city || '' ]]</span>
-                                        </div>
-                                        <div class="detect-info-row">
-                                            <span class="detect-info-label">ASN</span>
-                                            <span>[[ ip.asn || '-' ]]</span>
-                                        </div>
-                                        <div class="detect-info-row">
-                                            <span class="detect-info-label">组织</span>
-                                            <span>[[ ip.org || '-' ]]</span>
-                                        </div>
-                                        <div class="detect-info-row">
-                                            <span class="detect-info-label">类型</span>
-                                            <span>[[ ip.ipType || '-' ]]</span>
-                                        </div>
-                                        <div class="detect-info-row">
-                                            <span class="detect-info-label">来源</span>
-                                            <span>[[ ip.provider || '-' ]]</span>
-                                        </div>
-                                    </div>
-                                    <div class="detect-meta">
-                                        [[ ip.cached ? '缓存结果' : '实时检测' ]] | [[ ip.elapsedMs || 0 ]] ms | [[ formatTime(ip.checkedAt) ]]
-                                    </div>
-                                </template>
-                                <a-empty v-else description="尚未检测 IP"></a-empty>
-                            </a-card>
-                        </a-col>
-                        <a-col :xs="24" :lg="14">
-                            <a-card class="detect-card" title="平台可达性">
-                                <a-list v-if="unlock.length" item-layout="horizontal" :data-source="unlock">
-                                    <a-list-item slot="renderItem" slot-scope="item">
-                                        <a-list-item-meta>
-                                            <template slot="title">
-                                                [[ item.name ]]
-                                                <a-tag :color="statusColor(item.status)">[[ statusText(item.status) ]]</a-tag>
-                                                <a-tag v-if="item.region">[[ item.region ]]</a-tag>
-                                            </template>
-                                            <template slot="description">
-                                                [[ item.hint || '-' ]]
-                                                <span class="detect-meta"> | [[ item.cached ? '缓存' : '实时' ]] | [[ item.elapsedMs || 0 ]] ms | [[ formatTime(item.checkedAt) ]]</span>
-                                            </template>
-                                        </a-list-item-meta>
-                                    </a-list-item>
-                                </a-list>
-                                <a-empty v-else description="尚未检测平台"></a-empty>
-                            </a-card>
-                            <a-card class="detect-card" title="现有协议配置">
-                                <template v-if="protocols.inbounds && protocols.inbounds.length">
-                                    <a-alert v-if="protocols.valid" type="success" show-icon style="margin-bottom: 12px"
-                                             message="当前已配置入站通过 Xray 配置验证"/>
-                                    <a-alert v-else type="error" show-icon style="margin-bottom: 12px"
-                                             :message="protocols.error || 'Xray 配置验证失败'"/>
-                                    <a-list item-layout="horizontal" :data-source="protocols.inbounds">
-                                        <a-list-item slot="renderItem" slot-scope="item">
-                                            <a-list-item-meta>
-                                                <template slot="title">
-                                                    [[ item.protocol ]] : [[ item.port ]]
-                                                    <a-tag>[[ item.network || '-' ]]</a-tag>
-                                                    <a-tag>[[ item.security || 'none' ]]</a-tag>
-                                                </template>
-                                                <template slot="description">[[ item.tag ]]</template>
-                                            </a-list-item-meta>
-                                        </a-list-item>
-                                    </a-list>
-                                </template>
-                                <a-empty v-else description="尚未检测现有协议"></a-empty>
-                            </a-card>
-                            <a-card class="detect-card" title="三网回程路由">
-                                <a-alert v-if="backRouteError" type="warning" show-icon style="margin-bottom: 12px"
-                                         :message="backRouteError"/>
-                                <a-table v-if="backRoute.length" :columns="backRouteColumns" :data-source="backRoute"
-                                         :pagination="false" size="small" row-key="city"/>
-                                <a-empty v-else description="尚未检测回程路由"></a-empty>
-                            </a-card>
-                        </a-col>
-                    </a-row>
+            <a-card class="detect-card" title="体检指标">
+                <div class="metric-grid">
+                    <div v-for="metric in overview.metrics" :key="metric.key" class="metric-card">
+                        <div class="metric-title"><span>[[ metric.title ]]</span><a-tag :color="metricColor(metric.status)">[[ metricStatus(metric.status) ]]</a-tag></div>
+                        <div class="metric-value">[[ metric.value ]]</div>
+                        <div class="metric-hint">[[ metric.hint || '-' ]]</div>
+                    </div>
                 </div>
-            </transition>
+            </a-card>
+
+            <a-row :gutter="16">
+                <a-col :xs="24" :lg="10">
+                    <a-card class="detect-card" title="出口 IP 信息">
+                        <a-alert v-if="ip.error" type="warning" show-icon style="margin-bottom: 12px" :message="ip.error"></a-alert>
+                        <div v-if="ip.checkedAt || ip.ip" class="ip-grid">
+                            <div class="ip-item"><div class="ip-label">IP 地址</div><div class="ip-value">[[ ip.ip || '-' ]]</div></div>
+                            <div class="ip-item"><div class="ip-label">国家/城市</div><div class="ip-value">[[ countryFlag(ip.country) ]] [[ ip.country || '-' ]] [[ ip.city || '' ]]</div></div>
+                            <div class="ip-item"><div class="ip-label">ASN</div><div class="ip-value">[[ ip.asn || '-' ]]</div></div>
+                            <div class="ip-item"><div class="ip-label">组织</div><div class="ip-value">[[ ip.org || '-' ]]</div></div>
+                            <div class="ip-item"><div class="ip-label">IP 类型</div><div class="ip-value">[[ ipTypeText(ip.ipType) ]]</div></div>
+                            <div class="ip-item"><div class="ip-label">来源</div><div class="ip-value">[[ ip.provider || '-' ]]</div></div>
+                        </div>
+                        <a-empty v-else description="尚未检测 IP"></a-empty>
+                    </a-card>
+                </a-col>
+                <a-col :xs="24" :lg="14">
+                    <a-card class="detect-card" title="处理建议">
+                        <ul class="suggestion-list">
+                            <li v-for="item in overview.suggestions" :key="item">[[ item ]]</li>
+                        </ul>
+                    </a-card>
+                    <a-card class="detect-card" title="协议配置">
+                        <a-alert v-if="protocols.valid" type="success" show-icon style="margin-bottom: 12px" message="当前 Xray 配置校验通过"></a-alert>
+                        <a-alert v-else-if="protocols.error" type="error" show-icon style="margin-bottom: 12px" :message="protocols.error"></a-alert>
+                        <a-table :columns="protocolColumns" :data-source="protocols.inbounds || []" :pagination="false" size="small" row-key="tag"></a-table>
+                    </a-card>
+                </a-col>
+            </a-row>
+
+            <a-card class="detect-card" title="平台可达性">
+                <div v-if="unlock.length" class="platform-grid">
+                    <div v-for="item in unlock" :key="item.platform" class="platform-card">
+                        <div class="platform-head"><span class="platform-name">[[ item.name ]]</span><a-tag :color="unlockColor(item.status)">[[ unlockText(item.status) ]]</a-tag></div>
+                        <div class="platform-hint">[[ item.hint || '-' ]]</div>
+                        <div class="platform-meta">[[ item.region ? countryFlag(item.region) + ' ' + item.region + ' | ' : '' ]][[ item.cached ? '缓存' : '实时' ]] · [[ item.elapsedMs || 0 ]] ms</div>
+                    </div>
+                </div>
+                <a-empty v-else description="尚未检测平台"></a-empty>
+            </a-card>
+
+            <a-card class="detect-card" title="三网回程路由">
+                <a-alert v-if="backRouteError" type="warning" show-icon style="margin-bottom: 12px" :message="backRouteError"></a-alert>
+                <a-table v-if="backRouteRows.length" :columns="backRouteColumns" :data-source="backRouteRows" :pagination="false" size="small" row-key="city">
+                    <template slot="telecom" slot-scope="text"><span class="route-line" :style="{color: routeColor(text, 'telecom')}">[[ text || '-' ]]</span></template>
+                    <template slot="unicom" slot-scope="text"><span class="route-line" :style="{color: routeColor(text, 'unicom')}">[[ text || '-' ]]</span></template>
+                    <template slot="mobile" slot-scope="text"><span class="route-line" :style="{color: routeColor(text, 'mobile')}">[[ text || '-' ]]</span></template>
+                </a-table>
+                <a-empty v-else description="尚未检测回程路由"></a-empty>
+            </a-card>
         </a-layout-content>
     </a-layout>
 </a-layout>
@@ -160,86 +132,98 @@
         el: '#app',
         data: {
             siderDrawer,
-            spinningIP: false,
-            spinningUnlock: false,
-            spinningProtocols: false,
-            spinningBackRoute: false,
             force: false,
+            loading: { overview: false, ip: false, unlock: false, protocols: false, backRoute: false },
+            overview: { score: 0, level: '未检测', metrics: [], suggestions: ['点击一键体检开始检测。'], checkedAt: 0 },
             ip: {},
             unlock: [],
-            protocols: {},
+            protocols: { valid: false, inbounds: [] },
             backRoute: [],
-            backRouteError: '',
+            protocolColumns: [
+                { title: 'Tag', dataIndex: 'tag' },
+                { title: '端口', dataIndex: 'port', width: 90 },
+                { title: '协议', dataIndex: 'protocol', width: 110 },
+                { title: '传输', dataIndex: 'network', width: 110 },
+                { title: '安全', dataIndex: 'security', width: 110 },
+            ],
             backRouteColumns: [
                 { title: '城市', dataIndex: 'city', key: 'city' },
-                { title: '电信', dataIndex: 'telecom', key: 'telecom' },
-                { title: '联通', dataIndex: 'unicom', key: 'unicom' },
-                { title: '移动', dataIndex: 'mobile', key: 'mobile' },
+                { title: '电信', dataIndex: 'telecom', key: 'telecom', scopedSlots: { customRender: 'telecom' } },
+                { title: '联通', dataIndex: 'unicom', key: 'unicom', scopedSlots: { customRender: 'unicom' } },
+                { title: '移动', dataIndex: 'mobile', key: 'mobile', scopedSlots: { customRender: 'mobile' } },
             ],
         },
+        computed: {
+            backRouteError() {
+                const row = (this.backRoute || []).find(item => item.error);
+                return row ? row.error + '（Debian/Ubuntu: apt install mtr-tiny；CentOS/RHEL: yum install mtr）' : '';
+            },
+            backRouteRows() { return (this.backRoute || []).filter(item => !item.error); },
+        },
         methods: {
+            async detectOverview() {
+                this.loading.overview = true;
+                const msg = await HttpUtil.post('/xui/detect/overview', { force: this.force });
+                this.loading.overview = false;
+                if (msg.success) this.applyOverview(msg.obj || {});
+            },
             async detectIP() {
-                this.spinningIP = true;
+                this.loading.ip = true;
                 const msg = await HttpUtil.post('/xui/detect/ip', { force: this.force });
-                this.spinningIP = false;
+                this.loading.ip = false;
                 if (msg.success) this.ip = msg.obj || {};
             },
             async detectUnlock() {
-                this.spinningUnlock = true;
+                this.loading.unlock = true;
                 const msg = await HttpUtil.post('/xui/detect/unlock', { force: this.force });
-                this.spinningUnlock = false;
+                this.loading.unlock = false;
                 if (msg.success) this.unlock = msg.obj || [];
             },
             async detectProtocols() {
-                this.spinningProtocols = true;
+                this.loading.protocols = true;
                 const msg = await HttpUtil.post('/xui/detect/protocols');
-                this.spinningProtocols = false;
-                if (msg.success) this.protocols = msg.obj || {};
-            },
-            async detectAll() {
-                await Promise.all([this.detectIP(), this.detectUnlock(), this.detectProtocols(), this.detectBackRoute()]);
+                this.loading.protocols = false;
+                if (msg.success) this.protocols = msg.obj || { valid: false, inbounds: [] };
             },
             async detectBackRoute() {
-                this.spinningBackRoute = true;
-                this.backRouteError = '';
+                this.loading.backRoute = true;
                 const msg = await HttpUtil.post('/xui/detect/backroute');
-                this.spinningBackRoute = false;
-                if (msg.success) {
-                    const rows = msg.obj || [];
-                    const dependencyError = rows.find(row => row.error);
-                    if (dependencyError) {
-                        this.backRoute = [];
-                        this.backRouteError = dependencyError.error + '（Debian/Ubuntu: apt install mtr-tiny；CentOS/RHEL: yum install mtr）';
-                        return;
-                    }
-                    this.backRoute = rows;
-                    if (!this.backRoute.length) this.backRouteError = '未检测到回程路由，请确认服务器已安装 mtr';
-                } else {
-                    this.backRouteError = msg.msg || '检测失败';
-                }
+                this.loading.backRoute = false;
+                if (msg.success) this.backRoute = msg.obj || [];
             },
-            statusColor(status) {
-                if (status === 'unlocked') return 'green';
-                if (status === 'blocked') return 'red';
-                if (status === 'timeout') return 'orange';
-                return 'default';
+            applyOverview(data) {
+                this.overview = Object.assign({ score: 0, level: '未检测', metrics: [], suggestions: [], checkedAt: 0 }, data);
+                this.ip = data.ip || {};
+                this.unlock = data.unlock || [];
+                this.protocols = data.protocols || { valid: false, inbounds: [] };
+                this.backRoute = data.backRoute || [];
             },
-            statusText(status) {
-                if (status === 'unlocked') return '可用';
-                if (status === 'blocked') return '受限';
-                if (status === 'timeout') return '超时';
-                return '未知';
+            scoreColor(score) { return score >= 90 ? 'green' : score >= 75 ? 'blue' : score >= 60 ? 'orange' : 'red'; },
+            scoreText(score) { return score >= 90 ? '网络优秀' : score >= 75 ? '网络良好' : score >= 60 ? '需要关注' : '需要处理'; },
+            metricColor(status) { return status === 'success' ? 'green' : status === 'warning' ? 'orange' : status === 'error' ? 'red' : 'default'; },
+            metricStatus(status) { return status === 'success' ? '正常' : status === 'warning' ? '注意' : status === 'error' ? '异常' : '未知'; },
+            unlockColor(status) { return status === 'unlocked' ? 'green' : (status === 'blocked' || status === 'timeout') ? 'red' : 'orange'; },
+            unlockText(status) { return status === 'unlocked' ? '可用' : status === 'blocked' ? '受限' : status === 'timeout' ? '超时' : '未知'; },
+            routeColor(line, isp) {
+                if (!line || line === '检测失败') return '#999';
+                if ((isp === 'telecom' && line === 'CN2 GIA') || (isp === 'unicom' && line === '9929') || (isp === 'mobile' && line === 'CMIN2')) return '#52c41a';
+                if ((isp === 'telecom' && line === 'CN2 GT') || (isp === 'unicom' && line === '4837') || (isp === 'mobile' && line.indexOf('CMI') >= 0)) return '#faad14';
+                return '#ff4d4f';
+            },
+            ipTypeText(type) {
+                const map = { hosting: '机房', isp: '住宅/ISP', mobile: '移动网络', proxy: '代理' };
+                return map[type] || type || '-';
+            },
+            countryFlag(code) {
+                if (!code) return '';
+                return code.toUpperCase().replace(/./g, char => String.fromCodePoint(char.charCodeAt(0) + 127397));
             },
             formatTime(timestamp) {
                 if (!timestamp) return '-';
                 return moment(timestamp * 1000).format('YYYY-MM-DD HH:mm:ss');
             },
         },
-        mounted() {
-            this.detectIP();
-            this.detectProtocols();
-            this.detectUnlock();
-        },
+        mounted() { this.detectOverview(); },
     });
 </script>
 </body>

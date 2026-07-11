@@ -167,7 +167,7 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--accent2)}
         <span class="badge"><span class="dot" style="background:var(--accent)"></span>Go + Gin</span>
         <span class="badge"><span class="dot" style="background:var(--green)"></span>Xray-core</span>
         <span class="badge"><span class="dot" style="background:var(--purple)"></span>MIT 开源</span>
-        <span class="badge"><span class="dot" style="background:var(--orange)"></span>v1.1.0 最新发布</span>
+        <span class="badge"><span class="dot" style="background:var(--orange)"></span>v1.2.0 最新发布</span>
       </div>
       <div class="hero-btns">
         <a href="#install" class="btn btn-primary">立即安装</a>
@@ -286,9 +286,9 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--accent2)}
   <section class="section" id="security">
     <div class="container">
       <div class="section-header">
-        <div class="section-tag">Release · v1.1.0</div>
+        <div class="section-tag">Release · v1.2.0</div>
         <h2>发布亮点</h2>
-        <p class="desc">v1.1.0 完成核心页面重写、功能闭环和订阅安全加固</p>
+        <p class="desc">v1.2.0 新增 TLS 证书固定（pinnedPeerCertSha256），替代已弃用的 allowInsecure</p>
       </div>
       <div class="fg">
         <div class="fc">
@@ -323,8 +323,8 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--accent2)}
           <div class="icon cyan">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 002 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0022 16z"/></svg>
           </div>
-          <h3>Release 包</h3>
-          <p>GitHub Actions 自动构建 amd64 与 arm64 安装包，并上传到 GitHub Releases。</p>
+          <h3>TLS 证书固定</h3>
+          <p>新增 pinnedPeerCertSha256 配置，订阅链接自动输出 pinPeerCertSha256，替代 allowInsecure。</p>
         </div>
         <div class="fc">
           <div class="icon pink">
@@ -356,14 +356,14 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--accent2)}
         <div class="term-body">
           <div class="copy-row">
             <span class="prompt">$</span>
-            <code>bash &lt;(curl -Ls https://raw.githubusercontent.com/motao123/x-ui/main/install.sh) v1.1.0</code>
+            <code>bash &lt;(curl -Ls https://raw.githubusercontent.com/motao123/x-ui/main/install.sh) v1.2.0</code>
             <button class="cp" onclick="cpy(this)">复制</button>
           </div>
         </div>
       </div>
       <div class="cg">
         <div class="ci"><code>x-ui</code><span>管理菜单</span></div>
-        <div class="ci"><code>v1.1.0</code><span>最新版本</span></div>
+        <div class="ci"><code>v1.2.0</code><span>最新版本</span></div>
         <div class="ci"><code>x-ui start</code><span>启动面板</span></div>
         <div class="ci"><code>x-ui stop</code><span>停止面板</span></div>
         <div class="ci"><code>x-ui restart</code><span>重启面板</span></div>
@@ -384,7 +384,7 @@ a{color:var(--accent);text-decoration:none}a:hover{color:var(--accent2)}
 
 <script>
 function cpy(btn){
-  navigator.clipboard.writeText("bash <(curl -Ls https://raw.githubusercontent.com/motao123/x-ui/main/install.sh) v1.1.0").then(function(){
+  navigator.clipboard.writeText("bash <(curl -Ls https://raw.githubusercontent.com/motao123/x-ui/main/install.sh) v1.2.0").then(function(){
     btn.textContent='已复制';
     btn.classList.add('copied');
     setTimeout(function(){btn.textContent='复制';btn.classList.remove('copied')},2000);

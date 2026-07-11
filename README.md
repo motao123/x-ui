@@ -7,7 +7,7 @@
 
 本仓库基于原 x-ui 项目整理维护，并补充了安全加固，专注 Linux 服务器部署。
 
-当前版本：`v1.1.0`
+当前版本：`v1.2.0`
 
 ## 项目特性
 
@@ -591,7 +591,13 @@ go test ./...
 
 ## Releases
 
-最新版本：`v1.1.0`
+最新版本：`v1.2.0`
+
+### v1.2.0
+
+- 新增 TLS 证书固定（pinnedPeerCertSha256）配置，替代已弃用的 allowInsecure。
+- VLESS/Trojan 订阅链接自动输出 pinPeerCertSha256 参数，客户端导入即启用证书固定。
+- 更新 TLS 设置页告警，提示 Xray 2026.8.1 移除 allowInsecure 的截止时间与迁移路径。
 
 ### v1.1.0
 

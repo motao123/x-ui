@@ -117,6 +117,9 @@ func buildVLESSLink(proxyUser *model.ProxyUser, inbound *model.Inbound, address 
 	if flow := firstClientString(inbound.Settings, "flow"); flow != "" {
 		query.Set("flow", flow)
 	}
+	if pinned := streamTlsPinnedPeerCertSha256(inbound); pinned != "" {
+		query.Set("pinPeerCertSha256", pinned)
+	}
 	return fmt.Sprintf("vless://%s@%s:%d?%s#%s", proxyUser.UUID, address, inbound.Port, query.Encode(), remark)
 }
 
@@ -149,6 +152,9 @@ func buildTrojanLink(proxyUser *model.ProxyUser, inbound *model.Inbound, address
 	query := url.Values{}
 	if security := streamSecurity(inbound); security != "" {
 		query.Set("security", security)
+	}
+	if pinned := streamTlsPinnedPeerCertSha256(inbound); pinned != "" {
+		query.Set("pinPeerCertSha256", pinned)
 	}
 	return fmt.Sprintf("trojan://%s@%s:%d?%s#%s", url.QueryEscape(password), address, inbound.Port, query.Encode(), remark)
 }
@@ -190,6 +196,21 @@ func streamSecurity(inbound *model.Inbound) string {
 		return value
 	}
 	return "none"
+}
+
+func streamTlsPinnedPeerCertSha256(inbound *model.Inbound) string {
+	var stream map[string]interface{}
+	if err := json.Unmarshal([]byte(inbound.StreamSettings), &stream); err != nil {
+		return ""
+	}
+	for _, key := range []string{"tlsSettings", "xtlsSettings"} {
+		if tls, ok := stream[key].(map[string]interface{}); ok {
+			if value, ok := tls["pinnedPeerCertSha256"].(string); ok && value != "" {
+				return value
+			}
+		}
+	}
+	return ""
 }
 
 func firstClientString(settingsText string, key string) string {

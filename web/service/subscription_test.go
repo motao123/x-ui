@@ -26,6 +26,42 @@ func TestBuildSubscriptionVLESSLink(t *testing.T) {
 	if !strings.Contains(link, "security=reality") || !strings.Contains(link, "flow=xtls-rprx-vision") {
 		t.Fatalf("vless link missing query fields: %s", link)
 	}
+	if strings.Contains(link, "pinPeerCertSha256") {
+		t.Fatalf("vless link should not include pinPeerCertSha256 when unset: %s", link)
+	}
+}
+
+func TestBuildSubscriptionVLESSLinkEmitsPinnedPeerCert(t *testing.T) {
+	user := &model.ProxyUser{Name: "alice", UUID: "11111111-1111-4111-8111-111111111111"}
+	inbound := &model.Inbound{
+		Remark:         "tls",
+		Port:           443,
+		Protocol:       model.VLESS,
+		Settings:       `{"clients":[{"id":"old"}],"decryption":"none"}`,
+		StreamSettings: `{"network":"tcp","security":"tls","tlsSettings":{"serverName":"example.com","pinnedPeerCertSha256":"abcdef0123456789"}}`,
+	}
+	link := buildSubscriptionLink(user, inbound, "example.com")
+	if !strings.Contains(link, "pinPeerCertSha256=abcdef0123456789") {
+		t.Fatalf("vless link missing pinPeerCertSha256: %s", link)
+	}
+}
+
+func TestBuildSubscriptionTrojanLinkEmitsPinnedPeerCert(t *testing.T) {
+	user := &model.ProxyUser{Name: "alice", Password: "p@ss"}
+	inbound := &model.Inbound{
+		Remark:         "trojan",
+		Port:           443,
+		Protocol:       model.Trojan,
+		Settings:       `{"clients":[{"password":"p@ss"}]}`,
+		StreamSettings: `{"network":"tcp","security":"tls","tlsSettings":{"serverName":"example.com","pinnedPeerCertSha256":"abcdef0123456789"}}`,
+	}
+	link := buildSubscriptionLink(user, inbound, "example.com")
+	if !strings.HasPrefix(link, "trojan://") {
+		t.Fatalf("unexpected trojan link: %s", link)
+	}
+	if !strings.Contains(link, "pinPeerCertSha256=abcdef0123456789") {
+		t.Fatalf("trojan link missing pinPeerCertSha256: %s", link)
+	}
 }
 
 func TestBuildSubscriptionLinkDoesNotUseRequestHostFallback(t *testing.T) {

@@ -554,11 +554,13 @@ class RealityStreamSettings extends XrayCommonClass {
 
 class TlsStreamSettings extends XrayCommonClass {
     constructor(serverName='',
-                certificates=[new TlsStreamSettings.Cert()], alpn=[]) {
+                certificates=[new TlsStreamSettings.Cert()], alpn=[],
+                pinnedPeerCertSha256='') {
         super();
         this.server = serverName;
         this.certs = certificates;
         this.alpn = alpn;
+        this.pinnedPeerCertSha256 = pinnedPeerCertSha256;
     }
 
     addCert(cert) {
@@ -578,7 +580,8 @@ class TlsStreamSettings extends XrayCommonClass {
         return new TlsStreamSettings(
             json.serverName,
             certs,
-            json.alpn
+            json.alpn,
+            json.pinnedPeerCertSha256
         );
     }
 
@@ -586,7 +589,8 @@ class TlsStreamSettings extends XrayCommonClass {
         return {
             serverName: this.server,
             certificates: TlsStreamSettings.toJsonArray(this.certs),
-            alpn: this.alpn
+            alpn: this.alpn,
+            pinnedPeerCertSha256: this.pinnedPeerCertSha256
         };
     }
 }
